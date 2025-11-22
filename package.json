@@ -2,6 +2,11 @@
   "name": "presentation-observabilite-kubernetes-la-stack-grafana-en-pratique",
   "version": "1.0.0",
   "license": "UNLICENSED",
+  "scripts": {
+    "build": "gulp build",
+    "start": "gulp serve",
+    "clean": "gulp clean"
+  },
   "devDependencies": {
     "bespoke": "~1.1",
     "bespoke-bullets": "~1.1",

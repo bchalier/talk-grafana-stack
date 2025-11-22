@@ -11,63 +11,44 @@ html
 
     article.deck
 
-      section
-        h1 Observabilité Kubernetes : la stack Grafana en pratique
+      section.intro
+        h1 Observabilité Kubernetes
+        h2 La stack Grafana en pratique
 
-      section
-        h2 Images
-        img(src="images/bespoke-logo.jpg")
+      section.speaker
+        img.avatar(src='images/bastien.jpg', alt='Bastien Chalier')
+        h2 Bastien Chalier
+        p Platform Engineer
+        p
+          | Co-fondateur de
+          img.inline-logo(src='images/fransys.svg', alt='Fransys')
 
-      section
-        h2 Keyboard Interaction
-        h3 Powered by <a href="https://github.com/bespokejs/bespoke-keys">bespoke-keys</a>
+      section.why-what
+        h1 Pourquoi observer ? 
+        h1 Observer quoi ?
+        h2 Comprendre avant d'appliquer
 
-      section
-        h2 Touch Interaction
-        h3 Powered by <a href="https://github.com/bespokejs/bespoke-touch">bespoke-touch</a>
+      section.purpose
+        h2 Pourquoi observer ? 
+        ul.build-items
+          li Monitoring: détecter les anomalies
+          li Investigation: comprendre les causes
+          li Détails: expliquer l'impact
 
-      section
-        h2 Responsive Slides
-        h3 Powered by <a href="https://github.com/bespokejs/bespoke-scale">bespoke-scale</a>
+      section.what-tools
+        h2 Quoi observer ?
+        ul.build-items
+          li Metrics pour monitoring
+          li Traces pour investiguer
+          li Logs pour détails précis
 
-      section
-        h2 Bullet List
-        h3 Powered by <a href="https://github.com/bespokejs/bespoke-bullets">bespoke-bullets</a>
-        ul.build.build-items
-          li Bullet 1
-          li Bullet 2
-          li Bullet 3
-
-      section
-        iframe(width="640", height="360", src="https://www.youtube.com/embed/Ux8xAuQBdkk?enablejsapi=1&rel=0&showinfo=0&controls=0&disablekb=1&loop=1&playlist=Ux8xAuQBdkk", frameborder="0", allowfullscreen, data-volume="0")
-
-      section
-        h2 Syntax Highlighting
-        h3 Powered by <a href="https://twitter.com/LeaVerou">Lea Verou</a>'s <a href="https://github.com/PrismJS/prism">Prism</a>
-        pre
-          code.language-javascript.
-            function hanoi (n, a, b, c) {
-              return n ? hanoi(n - 1, a, c, b)
-                  .concat([[a, b]])
-                  .concat(hanoi(n - 1, c, b, a)) : []
-            }
-            console.log(hanoi(3, 'left', 'right', 'mid')
-              .map((d) => `${d[0]} -&gt; ${d[1]}`))
-
-      section(data-bespoke-hash='named-route')
-        h2 Named Route
-        h3 Powered by <a href="https://github.com/bespokejs/bespoke-hash">bespoke-hash</a>
-        p Look up! This route has been named with a <em>data-bespoke-hash</em> attribute.
-      section
-        h2.bullet Just the beginning…
-        ul.build.build-items
-          li Edit <a href="https://pugjs.org">Pug (formerly Jade)</a> markup in <em class="path">src/index.pug</em>
-          li Edit <a href="https://stylus-lang.com">Stylus</a> styles in <em class="path">src/styles/user.styl</em>
-          li Edit JavaScript in <em class="path">src/scripts/main.js</em>
-        br
-        ul.build
-          li
-            strong Enjoy! :)
-            a(href='https://twitter.com/markdalgleish')  -@markdalgleish
+      section.where
+        h2 Où observer ?
+        ul.build-items
+          li.kube Kubernetes
+          li VM
+          li Edge
+          li SaaS
+        p.focus-note.build(data-focus='kube') Focus sur Kubernetes pour cette session
 
     script(src='build/build.js')
