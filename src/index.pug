@@ -16,12 +16,12 @@ html
         h2 La stack Grafana en pratique
 
       section.speaker
-        img.avatar(src='images/bastien.jpg', alt='Bastien Chalier')
+        img.avatar(src='images/intro/bastien.jpg', alt='Bastien Chalier')
         h2 Bastien Chalier
         p Platform Engineer
         p
           | Co-fondateur de
-          img.inline-logo(src='images/fransys.svg', alt='Fransys')
+          img.inline-logo(src='images/intro/fransys.svg', alt='Fransys')
 
       section.why-what
         h1 Pourquoi observer ? 
@@ -56,26 +56,72 @@ html
 
       section
         h1 Un vaste ecosystème
-        img(src="images/observability_landscape_all.png", alt="Observability landscape", style="max-width: 100%; height: auto;")
+        img(src="images/intro/observability_landscape_all.png", alt="Observability landscape", style="max-width: 100%; height: auto;")
 
       section
         h1 Avec les clouders
-        img(src="images/observability_landscape_clouders.png", alt="Observability clouders", style="max-width: 100%; height: auto;")
+        img(src="images/intro/observability_landscape_clouders.png", alt="Observability clouders", style="max-width: 100%; height: auto;")
 
       section
         h1 Les SaaS
-        img(src="images/observability_landscape_saas.png", alt="Observability SaaS", style="max-width: 100%; height: auto;")
+        img(src="images/intro/observability_landscape_saas.png", alt="Observability SaaS", style="max-width: 100%; height: auto;")
 
       section
         h1 Les anciens
-        img(src="images/observability_landscape_old.png", alt="Observability anciens", style="max-width: 100%; height: auto;")
+        img(src="images/intro/observability_landscape_old.png", alt="Observability anciens", style="max-width: 100%; height: auto;")
 
       section
         h1 Les spécialistes
-        img(src="images/observability_landscape_specialized.png", alt="Observability spécialites", style="max-width: 100%; height: auto;")
+        img(src="images/intro/observability_landscape_specialized.png", alt="Observability spécialites", style="max-width: 100%; height: auto;")
 
       section
         h1 L'Open source
-        img(src="images/observability_landscape_oss.png", alt="Observability OSS", style="max-width: 100%; height: auto;")
+        img(src="images/intro/observability_landscape_oss.png", alt="Observability OSS", style="max-width: 100%; height: auto;")
+
+      section
+        h1 Grafana Stack
+        .history-logos
+          img(src="images/history/grafana.svg", alt="Grafana")
+          img(src="images/history/mimir.svg", alt="Mimir")
+          img(src="images/history/loki.svg", alt="Loki")
+          img(src="images/history/tempo.svg", alt="Tempo")
+          
+      section
+        h2 2013 - Grafana
+        ul.build-items
+          li Kibana fork for metrics
+          li Focus on UI
+          li Backend agnostic
+          
+      section
+        h2 2016 - Cortex
+        ul.build-items
+          li Multi-tenant
+          li Scalable - HA
+          li Long-term storage
+          
+      section
+        h2 2018 - Loki
+        ul.build-items
+          li 1 Po logs/jour
+          li Indexer uniquement les labels
+          li 75% moins cher
+          
+      section
+        h2 2020 - Tempo
+        ul.build-items
+          li 2m spans/s
+          li Integration avec metrics/logs
+          li Conserver 100% des spans
+          
+      section
+        h2 2022 - Mimir
+        ul.build-items
+          li 1M de séries
+          li Sortie de prometheus
+          li Stockage bucket
+          
+      section.timeline
+        img(src="images/history/timeline.svg", alt="Timeline", style="max-width: 100%; height: auto;")
 
     script(src='build/build.js')

@@ -1,0 +1,132 @@
+<svg width="900" height="220" viewBox="0 0 900 220" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    .axis { stroke: #444; stroke-width: 2; }
+    .tick-line { stroke: #ccc; stroke-width: 1; stroke-dasharray: 3 3; }
+    .label { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #222; }
+    .label-small { font-size: 11px; fill: #444; }
+    .label-year { font-size: 11px; fill: #666; }
+    .event-circle { stroke: #222; stroke-width: 1; fill: #fff; }
+  </style>
+
+  <!-- Title -->
+  <text x="450" y="24" text-anchor="middle" class="label" font-size="16" font-weight="bold">
+    De Grafana à la stack LGTM
+  </text>
+
+  <!-- Time axis -->
+  <!-- Years: 2013, 2016, 2018, 2019, 2020, 2021, 2022, 2023 -->
+  <!-- Map years roughly from x=80 à x=820 -->
+  <line x1="80" y1="100" x2="820" y2="100" class="axis" />
+
+  <!-- Year ticks -->
+  <g>
+    <line x1="80" y1="95" x2="80" y2="105" class="axis" />
+    <text x="80" y="120" text-anchor="middle" class="label-year">2013</text>
+
+    <line x1="220" y1="95" x2="220" y2="105" class="axis" />
+    <text x="220" y="120" text-anchor="middle" class="label-year">2016</text>
+
+    <line x1="340" y1="95" x2="340" y2="105" class="axis" />
+    <text x="340" y="120" text-anchor="middle" class="label-year">2018</text>
+
+    <line x1="400" y1="95" x2="400" y2="105" class="axis" />
+    <text x="400" y="120" text-anchor="middle" class="label-year">2019</text>
+
+    <line x1="480" y1="95" x2="480" y2="105" class="axis" />
+    <text x="480" y="120" text-anchor="middle" class="label-year">2020</text>
+
+    <line x1="550" y1="95" x2="550" y2="105" class="axis" />
+    <text x="550" y="120" text-anchor="middle" class="label-year">2021</text>
+
+    <line x1="640" y1="95" x2="640" y2="105" class="axis" />
+    <text x="640" y="120" text-anchor="middle" class="label-year">2022</text>
+
+    <line x1="740" y1="95" x2="740" y2="105" class="axis" />
+    <text x="740" y="120" text-anchor="middle" class="label-year">2023</text>
+  </g>
+
+  <!-- Helper grid lines (optional) -->
+  <g>
+    <line x1="80" y1="60" x2="80" y2="180" class="tick-line" />
+    <line x1="220" y1="60" x2="220" y2="180" class="tick-line" />
+    <line x1="340" y1="60" x2="340" y2="180" class="tick-line" />
+    <line x1="400" y1="60" x2="400" y2="180" class="tick-line" />
+    <line x1="480" y1="60" x2="480" y2="180" class="tick-line" />
+    <line x1="550" y1="60" x2="550" y2="180" class="tick-line" />
+    <line x1="640" y1="60" x2="640" y2="180" class="tick-line" />
+    <line x1="740" y1="60" x2="740" y2="180" class="tick-line" />
+  </g>
+
+  <!-- Events -->
+
+  <!-- 2013: Grafana -->
+  <circle cx="80" cy="100" r="7" class="event-circle" />
+  <text x="80" y="55" text-anchor="middle" class="label-small">
+    Grafana
+  </text>
+  <text x="80" y="69" text-anchor="middle" class="label-small">
+    Visualisation
+  </text>
+
+  <!-- 2016: Cortex -->
+  <circle cx="220" cy="100" r="7" class="event-circle" />
+  <text x="220" y="145" text-anchor="middle" class="label-small">
+    Cortex
+  </text>
+  <text x="220" y="159" text-anchor="middle" class="label-small">
+    Scale Prometheus
+  </text>
+
+  <!-- 2018: Loki announced -->
+  <circle cx="340" cy="100" r="7" class="event-circle" />
+  <text x="340" y="55" text-anchor="middle" class="label-small">
+    Loki
+  </text>
+  <text x="340" y="69" text-anchor="middle" class="label-small">
+    Logs abordables
+  </text>
+
+  <!-- 2019: Loki 1.0 GA (optionnel mais gardé) -->
+  <circle cx="400" cy="100" r="5" class="event-circle" />
+  <text x="400" y="145" text-anchor="middle" class="label-small">
+    Loki 1.0
+  </text>
+
+  <!-- 2020: Tempo annoncé -->
+  <circle cx="480" cy="100" r="7" class="event-circle" />
+  <text x="480" y="55" text-anchor="middle" class="label-small">
+    Tempo
+  </text>
+  <text x="480" y="69" text-anchor="middle" class="label-small">
+    Traces à grande échelle
+  </text>
+
+  <!-- 2021: Tempo 1.0 -->
+  <circle cx="550" cy="100" r="5" class="event-circle" />
+  <text x="550" y="145" text-anchor="middle" class="label-small">
+    Tempo 1.0
+  </text>
+
+  <!-- 2022: Mimir -->
+  <circle cx="640" cy="100" r="7" class="event-circle" />
+  <text x="640" y="145" text-anchor="middle" class="label-small">
+    Mimir
+  </text>
+  <text x="640" y="159" text-anchor="middle" class="label-small">
+    Backend métriques
+  </text>
+
+  <!-- 2023: Profiling (Pyroscope) -->
+  <circle cx="740" cy="100" r="7" class="event-circle" />
+  <text x="740" y="55" text-anchor="middle" class="label-small">
+    Pyroscope
+  </text>
+  <text x="740" y="69" text-anchor="middle" class="label-small">
+    Profiling continu
+  </text>
+
+  <!-- Caption -->
+  <text x="450" y="200" text-anchor="middle" class="label-small">
+    Visualisation → Metrics (Cortex/Mimir) → Logs (Loki) → Traces (Tempo) → Profiling (Pyroscope)
+  </text>
+</svg>
