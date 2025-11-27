@@ -1,0 +1,44 @@
+mimir:
+  structuredConfig:
+    memberlist:
+      cluster_label: "mimir"
+    common:
+      storage:
+        backend: s3
+        s3:
+          endpoint: minio.default.svc.cluster.local
+          region: europe
+          access_key_id: "minio"
+          secret_access_key: "minio123"
+          insecure: true
+    blocks_storage:
+      backend: s3
+      s3:
+        bucket_name: mimir-blocks
+alertmanager:
+  enabled: false
+  persistentVolume:
+    enableRetentionPolicy: true
+    whenDeleted: Delete
+    whenScaled: Delete
+minio:
+  enabled: false
+ruler:
+  enabled: false
+nginx:
+  enabled: false
+ingester:
+  persistentVolume:
+    enableRetentionPolicy: true
+    whenDeleted: Delete
+    whenScaled: Delete
+store_gateway:
+  persistentVolume:
+    enableRetentionPolicy: true
+    whenDeleted: Delete
+    whenScaled: Delete
+compactor:
+  persistentVolume:
+    enableRetentionPolicy: true
+    whenDeleted: Delete
+    whenScaled: Delete

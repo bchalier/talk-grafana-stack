@@ -1,0 +1,48 @@
+deploymentMode: Distributed
+backend:
+  replicas: 0
+read:
+  replicas: 0
+write:
+  replicas: 0
+loki:
+  storage:
+    type: s3
+    s3:
+      endpoint: minio.default.svc.cluster.local
+      region: europe
+      access_key_id: "minio"
+      secret_access_key: "minio123"
+      insecure: true
+    bucketNames:
+      chunks: loki-chunks
+      ruler: loki-rules
+      admin: loki-admin
+  structuredConfig:
+    memberlist:
+      cluster_label: "loki"
+  schemaConfig:
+    configs:
+      - from: 2025-11-01
+        store: tsdb
+        object_store: s3
+        schema: v13
+        index:
+          prefix: tsdb_loki_index_
+          period: 24h
+ruler:
+  enabled: false
+ingester:
+  replicas: 1
+distributor:
+  replicas: 1
+querier:
+  replicas: 1
+queryFrontend:
+  replicas: 1
+queryScheduler:
+  replicas: 1
+indexGateway:
+  replicas: 1
+compactor:
+  replicas: 1

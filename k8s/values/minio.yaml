@@ -1,0 +1,10 @@
+tenant:
+  name: grafana-stack
+  certificate:
+    requestAutoCert: false
+  buckets:
+    - name: mimir-blocks
+    - name: loki-chunks
+    - name: loki-rules
+    - name: loki-admin
+    - name: tempo
