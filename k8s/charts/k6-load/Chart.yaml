@@ -1,0 +1,6 @@
+apiVersion: v2
+name: k6-load
+description: k6-based load generator for demo apps
+type: application
+version: 0.1.0
+appVersion: "0.54.0"

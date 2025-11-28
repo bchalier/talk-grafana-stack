@@ -80,3 +80,10 @@ releases:
     namespace: app
     chart: ./charts/app
     version: 0.1.0
+
+  - name: k6-load
+    namespace: app
+    chart: ./charts/k6-load
+    version: 0.1.0
+    values:
+      - values/k6-load.yaml

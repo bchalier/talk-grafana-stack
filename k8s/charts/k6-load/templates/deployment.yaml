@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "k6-load.fullname" . }}
+  labels:
+    {{- include "k6-load.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "k6-load.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "k6-load.selectorLabels" . | nindent 8 }}
+    spec:
+      containers:
+        - name: k6
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              while true; do
+                k6 run /scripts/load.js || true
+                sleep 5
+              done
+          env:
+            - name: K6_VUS
+              value: {{ .Values.load.vus | quote }}
+            - name: K6_DURATION
+              value: {{ .Values.load.duration | quote }}
+            - name: K6_SLEEP
+              value: {{ .Values.load.sleepSeconds | quote }}
+          volumeMounts:
+            - name: k6-script
+              mountPath: /scripts
+              readOnly: true
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      volumes:
+        - name: k6-script
+          configMap:
+            name: {{ include "k6-load.fullname" . }}
+            items:
+              - key: load.js
+                path: load.js

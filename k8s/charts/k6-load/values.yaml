@@ -1,0 +1,15 @@
+image:
+  repository: grafana/k6
+  tag: "0.54.0"
+  pullPolicy: IfNotPresent
+
+load:
+  vus: 6
+  duration: 1h
+  sleepSeconds: 1
+
+targets:
+  - http://app-1-app.app.svc.cluster.local
+  - http://app-2-app.app.svc.cluster.local
+
+resources: {}
