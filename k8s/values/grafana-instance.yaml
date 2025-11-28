@@ -1,0 +1,21 @@
+grafana:
+  adminUser: admin
+  adminPassword: 8MBxR5x3mL0ZqH2t
+  labels:
+    grafana: primary
+  dataStorage:
+    size: 1Gi
+    accessModes:
+      - ReadWriteOnce
+
+datasources:
+  loki:
+    url: http://loki-gateway.loki.svc.cluster.local
+    orgId: demo
+  mimir:
+    url: http://mimir-gateway.mimir.svc.cluster.local/prometheus
+    orgId: demo
+    isDefault: true
+  tempo:
+    url: http://tempo-gateway.tempo.svc.cluster.local
+    orgId: demo

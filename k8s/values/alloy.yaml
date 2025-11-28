@@ -1,0 +1,181 @@
+# values-alloy.yaml
+controller:
+  # Run on every node so you see all pod logs & metrics
+  type: daemonset
+
+alloy:
+  stabilityLevel: "generally-available"
+
+  # Mounts are not needed if you use the Kubernetes API for logs
+  mounts:
+    varlog: false
+    dockercontainers: false
+
+  # Env vars used inside the River config (see next section)
+  extraEnv:
+    - name: LOKI_URL
+      value: "http://loki-gateway.loki.svc.cluster.local/loki/api/v1/push"
+    - name: PROM_REMOTE_WRITE_URL
+      value: "http://mimir-gateway.mimir.svc.cluster.local/api/v1/push"
+    - name: TEMPO_ENDPOINT
+      value: "tempo-gateway.tempo.svc.cluster.local:4317"
+
+  # Expose OTLP so your demo app can send traces
+  extraPorts:
+    - name: otlp-grpc
+      port: 4317
+      targetPort: 4317
+      protocol: TCP
+    - name: otlp-http
+      port: 4318
+      targetPort: 4318
+      protocol: TCP
+
+  # River config goes here
+  configMap:
+    create: true
+    content: |-
+      // --------- Global logging ----------
+      logging {
+        level  = "info"
+        format = "logfmt"
+      }
+
+      // --------- Kubernetes discovery ----------
+      discovery.kubernetes "pods" {
+        role = "pod"
+      }
+
+      // Add application label from Helm release
+      discovery.relabel "pods_with_app" {
+        targets = discovery.kubernetes.pods.targets
+        rule {
+          source_labels = ["__meta_kubernetes_pod_label_app_kubernetes_io_instance"]
+          target_label  = "application"
+        }
+      }
+
+      // Scrape only annotated pods (Prometheus annotations)
+      discovery.relabel "pods_metrics" {
+        targets = discovery.relabel.pods_with_app.output
+        rule {
+          source_labels = ["__meta_kubernetes_pod_annotation_prometheus_io_scrape"]
+          action        = "keep"
+          regex         = "true"
+        }
+        rule {
+          source_labels = ["__meta_kubernetes_pod_ip", "__meta_kubernetes_pod_annotation_prometheus_io_port"]
+          separator     = ":"
+          target_label  = "__address__"
+          replacement   = "$1:$2"
+        }
+        rule {
+          source_labels = ["__meta_kubernetes_pod_annotation_prometheus_io_path"]
+          target_label  = "__metrics_path__"
+          regex         = "(.+)"
+          replacement   = "$1"
+        }
+        rule {
+          source_labels = ["__meta_kubernetes_pod_annotation_prometheus_io_scheme"]
+          target_label  = "__scheme__"
+          regex         = "(.+)"
+          replacement   = "$1"
+        }
+      }
+
+      // =========================================
+      // LOGS -> Loki
+      // =========================================
+
+      // Pod logs via Kubernetes API
+      loki.source.kubernetes "pods" {
+        targets    = discovery.relabel.pods_with_app.output
+        forward_to = [loki.process.pod_logs.receiver]
+      }
+
+      loki.process "pod_logs" {
+        stage.static_labels {
+          values = {
+            cluster = "demo-cluster",
+          }
+        }
+
+        forward_to = [loki.write.default.receiver]
+      }
+
+      // Kubernetes events
+      loki.source.kubernetes_events "events" {
+        job_name   = "kubernetes-events"
+        forward_to = [loki.write.default.receiver]
+      }
+
+      loki.write "default" {
+        endpoint {
+          url = sys.env("LOKI_URL")
+          headers = {
+            "X-Scope-OrgID" = "demo",
+          }
+        }
+      }
+
+      // =========================================
+      // METRICS -> Prometheus / Mimir
+      // =========================================
+
+      // Scrape all pod endpoints that expose Prometheus metrics
+      prometheus.scrape "kubernetes_pods" {
+        targets         = discovery.relabel.pods_metrics.output
+        job_name        = "kubernetes-pods"
+        scrape_interval = "30s"
+        forward_to      = [prometheus.remote_write.default.receiver]
+      }
+
+      prometheus.remote_write "default" {
+        endpoint {
+          url = sys.env("PROM_REMOTE_WRITE_URL")
+          headers = {
+            "X-Scope-OrgID" = "demo",
+          }
+        }
+      }
+
+      // =========================================
+      // TRACES -> Tempo (OTLP)
+      // =========================================
+
+      // Receives OTLP from your apps
+      otelcol.receiver.otlp "ingest" {
+        grpc {
+          endpoint = "0.0.0.0:4317"
+        }
+        http {
+          endpoint = "0.0.0.0:4318"
+        }
+
+        output {
+          traces = [otelcol.processor.batch.default.input]
+        }
+      }
+
+      otelcol.processor.batch "default" {
+        timeout         = "5s"
+        send_batch_size = 8192
+        send_batch_max_size = 12000
+
+        output {
+          traces = [otelcol.exporter.otlp.tempo.input]
+        }
+      }
+
+      otelcol.exporter.otlp "tempo" {
+        client {
+          endpoint = sys.env("TEMPO_ENDPOINT")
+          headers = {
+            "X-Scope-OrgID" = "demo",
+          }
+          tls {
+            // For a simple demo with in-cluster Tempo, plain gRPC is usually fine
+            insecure = true
+          }
+        }
+      }

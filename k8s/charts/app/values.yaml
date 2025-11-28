@@ -1,0 +1,27 @@
+replicaCount: 3
+
+image:
+  repository: bchalier/grafana-demo-app
+  tag: 2
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 80
+
+resources: {}
+
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "8080"
+  prometheus.io/path: "/metrics"
+
+env:
+  logLevel: info
+  appName: ""
+  otlpEndpoint: alloy.default.svc.cluster.local:4317
+
+serviceMonitor:
+  enabled: false
+  interval: 15s
+  additionalLabels: {}

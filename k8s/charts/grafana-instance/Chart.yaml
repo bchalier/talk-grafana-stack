@@ -1,0 +1,6 @@
+apiVersion: v2
+name: grafana-instance
+description: Deploy Grafana CR and datasources via the Grafana Operator
+type: application
+version: 0.1.0
+appVersion: "12.2.1"

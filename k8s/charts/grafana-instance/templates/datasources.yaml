@@ -1,0 +1,91 @@
+{{- define "grafana-instance.datasource.loki" }}
+apiVersion: grafana.integreatly.org/v1beta1
+kind: GrafanaDatasource
+metadata:
+  name: {{ printf "%s-loki" .Release.Name }}
+  namespace: {{ .Values.grafana.namespace | default .Release.Namespace }}
+spec:
+  instanceSelector:
+    matchLabels:
+      grafana: {{ (.Values.grafana.labels.grafana | default "primary") | quote }}
+  datasource:
+    name: Loki
+    type: loki
+    uid: loki
+    url: {{ .Values.datasources.loki.url | quote }}
+    access: proxy
+    jsonData:
+      httpHeaderName1: "X-Scope-OrgID"
+    secureJsonData:
+      httpHeaderValue1: {{ .Values.datasources.loki.orgId | default "demo" | quote }}
+{{ end }}
+
+{{- define "grafana-instance.datasource.mimir" }}
+apiVersion: grafana.integreatly.org/v1beta1
+kind: GrafanaDatasource
+metadata:
+  name: {{ printf "%s-mimir" .Release.Name }}
+  namespace: {{ .Values.grafana.namespace | default .Release.Namespace }}
+spec:
+  instanceSelector:
+    matchLabels:
+      grafana: {{ (.Values.grafana.labels.grafana | default "primary") | quote }}
+  datasource:
+    name: Mimir
+    type: prometheus
+    uid: mimir
+    url: {{ .Values.datasources.mimir.url | quote }}
+    access: proxy
+    isDefault: {{ default false .Values.datasources.mimir.isDefault }}
+    jsonData:
+      httpHeaderName1: "X-Scope-OrgID"
+    secureJsonData:
+      httpHeaderValue1: {{ .Values.datasources.mimir.orgId | default "demo" | quote }}
+{{ end }}
+
+{{- define "grafana-instance.datasource.tempo" }}
+apiVersion: grafana.integreatly.org/v1beta1
+kind: GrafanaDatasource
+metadata:
+  name: {{ printf "%s-tempo" .Release.Name }}
+  namespace: {{ .Values.grafana.namespace | default .Release.Namespace }}
+spec:
+  instanceSelector:
+    matchLabels:
+      grafana: {{ (.Values.grafana.labels.grafana | default "primary") | quote }}
+  datasource:
+    name: Tempo
+    type: tempo
+    uid: tempo
+    url: {{ .Values.datasources.tempo.url | quote }}
+    access: proxy
+    jsonData:
+      httpHeaderName1: "X-Scope-OrgID"
+      tracesToLogs:
+        datasourceUid: loki
+        spanStartTimeShift: "1h"
+        spanEndTimeShift: "-1h"
+        mapTagNamesEnabled: true
+        tags:
+          - key: service.name
+            value: service
+    secureJsonData:
+      httpHeaderValue1: {{ .Values.datasources.tempo.orgId | default "demo" | quote }}
+{{ end }}
+
+{{- $docs := list -}}
+{{- if .Values.datasources.loki.enabled }}
+{{- $docs = append $docs (include "grafana-instance.datasource.loki" .) }}
+{{- end }}
+{{- if .Values.datasources.mimir.enabled }}
+{{- $docs = append $docs (include "grafana-instance.datasource.mimir" .) }}
+{{- end }}
+{{- if .Values.datasources.tempo.enabled }}
+{{- $docs = append $docs (include "grafana-instance.datasource.tempo" .) }}
+{{- end }}
+{{- range $i, $doc := $docs }}
+{{- if $i }}
+---
+{{- end }}
+{{ $doc }}
+{{- end }}

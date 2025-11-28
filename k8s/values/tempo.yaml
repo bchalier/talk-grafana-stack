@@ -1,0 +1,29 @@
+storage:
+  trace:
+    backend: s3
+    s3:
+      endpoint: minio.default.svc.cluster.local
+      region: europe
+      access_key: "minio"
+      secret_key: "minio123"
+      insecure: true
+      bucket: tempo
+tempo:
+  structuredConfig:
+    memberlist:
+      cluster_label: "tempo"
+gateway:
+  enabled: true
+metricsGenerator:
+  enabled: true
+  remoteWriteUrl: "http://mimir-gateway.mimir.svc.cluster.local/api/v1/push"
+overrides:
+  defaults:
+    metrics_generator:
+      processors: [service-graphs, span-metrics, local-blocks]
+traces:
+  otlp:
+    http:
+      enabled: true
+    grpc:
+      enabled: true

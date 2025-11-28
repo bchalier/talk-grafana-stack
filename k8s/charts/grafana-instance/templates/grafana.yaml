@@ -1,0 +1,32 @@
+{{- $ns := .Values.grafana.namespace | default .Release.Namespace -}}
+{{- $instanceLabel := .Values.grafana.labels.grafana | default "primary" -}}
+apiVersion: grafana.integreatly.org/v1beta1
+kind: Grafana
+metadata:
+  name: {{ .Values.grafana.name | default "grafana" }}
+  namespace: {{ $ns }}
+  labels:
+    app.kubernetes.io/name: grafana
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    grafana: {{ $instanceLabel | quote }}
+    {{- range $k, $v := .Values.grafana.labels }}
+    {{- if ne $k "grafana" }}
+    {{ $k }}: {{ $v | quote }}
+    {{- end }}
+    {{- end }}
+spec:
+  config:
+    security:
+      admin_user: {{ .Values.grafana.adminUser | quote }}
+      admin_password: {{ .Values.grafana.adminPassword | quote }}
+  service:
+    spec:
+      type: {{ .Values.grafana.service.type | default "ClusterIP" }}
+  {{- if .Values.grafana.dataStorage.enabled }}
+  dataStorage:
+    accessModes:
+      {{- range .Values.grafana.dataStorage.accessModes }}
+      - {{ . | quote }}
+      {{- end }}
+    size: {{ .Values.grafana.dataStorage.size | default "1Gi" | quote }}
+  {{- end }}

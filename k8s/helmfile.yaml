@@ -5,12 +5,21 @@ repositories:
     url: https://operator.min.io
 
 releases:
-  - name: grafana
+  - name: grafana-operator
     namespace: default
-    chart: grafana/grafana
-    version: 10.2.0
+    chart: grafana/grafana-operator
+    version: v5.20.0
     values:
-      - values/grafana.yaml
+      - values/grafana-operator.yaml
+
+  - name: grafana-instance
+    needs:
+      - default/grafana-operator
+    namespace: default
+    chart: ./charts/grafana-instance
+    version: 0.1.0
+    values:
+      - values/grafana-instance.yaml
 
   - name: minio-operator
     namespace: default
@@ -45,3 +54,29 @@ releases:
     version: 6.46.0
     values:
       - values/loki.yaml
+
+  - name: tempo
+    needs:
+      - default/minio
+    namespace: tempo
+    chart: grafana/tempo-distributed
+    version: 1.56.2
+    values:
+      - values/tempo.yaml
+
+  - name: alloy
+    namespace: default
+    chart: grafana/alloy
+    version: 1.4.0
+    values:
+      - values/alloy.yaml
+
+  - name: app-1
+    namespace: app
+    chart: ./charts/app
+    version: 0.1.0
+
+  - name: app-2
+    namespace: app
+    chart: ./charts/app
+    version: 0.1.0
