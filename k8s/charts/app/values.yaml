@@ -2,7 +2,7 @@ replicaCount: 3
 
 image:
   repository: bchalier/grafana-demo-app
-  tag: 2
+  tag: 4
   pullPolicy: IfNotPresent
 
 service:
@@ -20,6 +20,9 @@ env:
   logLevel: info
   appName: ""
   otlpEndpoint: alloy.default.svc.cluster.local:4317
+  chaosSlowDb: "false"
+  chaosError: "false"
+  chaosDbFailure: "false"
 
 serviceMonitor:
   enabled: false

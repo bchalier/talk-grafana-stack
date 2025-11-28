@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"log"
 	"math/rand"
 	"net/http"
@@ -10,12 +11,14 @@ import (
 	"time"
 
 	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/exporters/otlp/otlptrace"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
-	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
+	"go.opentelemetry.io/otel/trace"
+	"google.golang.org/grpc"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -46,22 +49,33 @@ func init() {
 	rand.Seed(time.Now().UnixNano())
 }
 
-func initTracer(ctx context.Context, serviceName, endpoint string) (*sdktrace.TracerProvider, error) {
-	res, err := resource.New(ctx,
-		resource.WithAttributes(
-			semconv.ServiceName(serviceName),
-		),
+func initTracer(ctx context.Context) (*sdktrace.TracerProvider, error) {
+	endpoint := os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
+	if endpoint == "" {
+		endpoint = "alloy.monitoring.svc.cluster.local:4317"
+	}
+
+	exporter, err := otlptracegrpc.New(
+		ctx,
+		otlptracegrpc.WithEndpoint(endpoint),
+		otlptracegrpc.WithInsecure(),
+		otlptracegrpc.WithDialOption(grpc.WithBlock()),
 	)
 	if err != nil {
 		return nil, err
 	}
 
-	client := otlptracegrpc.NewClient(
-		otlptracegrpc.WithEndpoint(endpoint),
-		otlptracegrpc.WithInsecure(),
-	)
+	serviceName := os.Getenv("APP_NAME")
+	if serviceName == "" {
+		serviceName = "grafana-demo-app"
+	}
 
-	exporter, err := otlptrace.New(ctx, client)
+	res, err := resource.New(
+		ctx,
+		resource.WithAttributes(
+			semconv.ServiceNameKey.String(serviceName),
+		),
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -72,19 +86,25 @@ func initTracer(ctx context.Context, serviceName, endpoint string) (*sdktrace.Tr
 	)
 
 	otel.SetTracerProvider(tp)
-	otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(
-		propagation.TraceContext{},
-		propagation.Baggage{},
-	))
-
 	return tp, nil
 }
 
-func logJSON(level, msg string, extra map[string]interface{}) {
+func logJSON(ctx context.Context, level, msg string, extra map[string]interface{}) {
 	entry := map[string]interface{}{
 		"ts":    time.Now().Format(time.RFC3339Nano),
 		"level": level,
 		"msg":   msg,
+	}
+
+	if ctx != nil {
+		span := trace.SpanFromContext(ctx)
+		if span != nil {
+			sc := span.SpanContext()
+			if sc.IsValid() {
+				entry["trace_id"] = sc.TraceID().String()
+				entry["span_id"] = sc.SpanID().String()
+			}
+		}
 	}
 
 	for k, v := range extra {
@@ -93,6 +113,53 @@ func logJSON(level, msg string, extra map[string]interface{}) {
 
 	b, _ := json.Marshal(entry)
 	log.Println(string(b))
+}
+
+func doBusinessLogic(ctx context.Context, tracer trace.Tracer) error {
+	ctx, span := tracer.Start(ctx, "service_B_business_logic")
+	defer span.End()
+
+	time.Sleep(time.Duration(50+rand.Intn(100)) * time.Millisecond)
+
+	if os.Getenv("CHAOS_ERROR") == "true" && rand.Intn(5) == 0 {
+		err := errors.New("simulated business logic failure")
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+		span.SetAttributes(attribute.String("chaos", "random_error"))
+		return err
+	}
+
+	return nil
+}
+
+func callDatabase(ctx context.Context, tracer trace.Tracer) {
+	ctx, span := tracer.Start(ctx, "service_C_db_call")
+	defer span.End()
+
+	if os.Getenv("CHAOS_DB_FAILURE") == "true" {
+		err := errors.New("db timeout")
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+		span.SetAttributes(attribute.String("chaos", "db_failure"))
+		time.Sleep(2 * time.Second)
+		return
+	}
+
+	if os.Getenv("CHAOS_SLOW_DB") == "true" {
+		delay := time.Duration(800+rand.Intn(1200)) * time.Millisecond
+		time.Sleep(delay)
+		span.SetAttributes(attribute.String("chaos", "slow_db"))
+		return
+	}
+
+	time.Sleep(time.Duration(20+rand.Intn(50)) * time.Millisecond)
+}
+
+func renderTemplate(ctx context.Context, tracer trace.Tracer) {
+	ctx, span := tracer.Start(ctx, "template_rendering")
+	defer span.End()
+
+	time.Sleep(time.Duration(10+rand.Intn(30)) * time.Millisecond)
 }
 
 func main() {
@@ -108,15 +175,10 @@ func main() {
 		appName = "grafana-demo-app"
 	}
 
-	otlpEndpoint := os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
-	if otlpEndpoint == "" {
-		otlpEndpoint = "alloy.default.svc.cluster.local:4317"
-	}
-
 	ctx := context.Background()
-	tp, err := initTracer(ctx, appName, otlpEndpoint)
+	tp, err := initTracer(ctx)
 	if err != nil {
-		logJSON("error", "failed to initialize tracer", map[string]interface{}{"error": err.Error()})
+		logJSON(ctx, "error", "failed to initialize tracer", map[string]interface{}{"error": err.Error()})
 		os.Exit(1)
 	}
 	defer func() {
@@ -134,12 +196,34 @@ func main() {
 
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
-		_, span := tracer.Start(r.Context(), "handle_request")
+		ctx, span := tracer.Start(r.Context(), "handle_root")
 		defer span.End()
 
-		// Simulate variable latency
-		delay := time.Duration(50+rand.Intn(500)) * time.Millisecond
-		time.Sleep(delay)
+		span.SetAttributes(
+			semconv.HTTPRequestMethodKey.String(r.Method),
+			semconv.URLPathKey.String(r.URL.Path),
+		)
+
+		if err := doBusinessLogic(ctx, tracer); err != nil {
+			span.SetStatus(codes.Error, "business logic failed")
+
+			requestCounter.WithLabelValues(r.URL.Path, r.Method, "500").Inc()
+			requestDuration.WithLabelValues(r.URL.Path, r.Method).Observe(time.Since(start).Seconds())
+
+			logJSON(ctx, "error", "business logic failed", map[string]interface{}{
+				"path":       r.URL.Path,
+				"method":     r.Method,
+				"status":     http.StatusInternalServerError,
+				"latency_ms": time.Since(start).Milliseconds(),
+				"error":      err.Error(),
+			})
+
+			http.Error(w, "internal failure", http.StatusInternalServerError)
+			return
+		}
+
+		callDatabase(ctx, tracer)
+		renderTemplate(ctx, tracer)
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
@@ -152,23 +236,21 @@ func main() {
 		requestCounter.WithLabelValues(path, method, "200").Inc()
 		requestDuration.WithLabelValues(path, method).Observe(time.Since(start).Seconds())
 
-		logJSON("info", "handled request", map[string]interface{}{
+		logJSON(ctx, "info", "handled request", map[string]interface{}{
 			"path":       path,
 			"method":     method,
 			"status":     status,
 			"latency_ms": time.Since(start).Milliseconds(),
-			"trace_id":   span.SpanContext().TraceID().String(),
-			"span_id":    span.SpanContext().SpanID().String(),
 		})
 	})
 
 	// Prometheus metrics endpoint
 	mux.Handle("/metrics", promhttp.Handler())
 
-	logJSON("info", "starting server", map[string]interface{}{"port": port})
+	logJSON(ctx, "info", "starting server", map[string]interface{}{"port": port})
 	handler := otelhttp.NewHandler(mux, "http-server")
 	if err := http.ListenAndServe(":"+port, handler); err != nil {
-		logJSON("error", "server failed", map[string]interface{}{"error": err.Error()})
+		logJSON(ctx, "error", "server failed", map[string]interface{}{"error": err.Error()})
 		os.Exit(1)
 	}
 }

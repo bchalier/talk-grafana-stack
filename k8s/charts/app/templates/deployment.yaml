@@ -32,10 +32,12 @@ spec:
               value: {{ default .Release.Name .Values.env.appName | quote }}
             - name: OTEL_EXPORTER_OTLP_ENDPOINT
               value: {{ .Values.env.otlpEndpoint | quote }}
-            - name: OTEL_EXPORTER_OTLP_PROTOCOL
-              value: "grpc"
-            - name: OTEL_EXPORTER_OTLP_INSECURE
-              value: "true"
+            - name: CHAOS_SLOW_DB
+              value: {{ .Values.env.chaosSlowDb | quote }}
+            - name: CHAOS_ERROR
+              value: {{ .Values.env.chaosError | quote }}
+            - name: CHAOS_DB_FAILURE
+              value: {{ .Values.env.chaosDbFailure | quote }}
           readinessProbe:
             httpGet:
               path: /health
