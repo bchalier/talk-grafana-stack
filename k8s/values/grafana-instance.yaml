@@ -3,10 +3,8 @@ grafana:
   adminPassword: 8MBxR5x3mL0ZqH2t
   labels:
     grafana: primary
-  dataStorage:
+  persistence:
     size: 1Gi
-    accessModes:
-      - ReadWriteOnce
 
 datasources:
   loki:

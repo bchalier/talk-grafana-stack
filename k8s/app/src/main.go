@@ -8,6 +8,7 @@ import (
 	"math/rand"
 	"net/http"
 	"os"
+	"strconv"
 	"time"
 
 	"go.opentelemetry.io/otel"
@@ -199,26 +200,33 @@ func main() {
 		ctx, span := tracer.Start(r.Context(), "handle_root")
 		defer span.End()
 
+		path := r.URL.Path
+		method := r.Method
+		status := http.StatusOK
+
+		defer func() {
+			requestCounter.WithLabelValues(path, method, strconv.Itoa(status)).Inc()
+			requestDuration.WithLabelValues(path, method).Observe(time.Since(start).Seconds())
+		}()
+
 		span.SetAttributes(
-			semconv.HTTPRequestMethodKey.String(r.Method),
-			semconv.URLPathKey.String(r.URL.Path),
+			semconv.HTTPRequestMethodKey.String(method),
+			semconv.URLPathKey.String(path),
 		)
 
 		if err := doBusinessLogic(ctx, tracer); err != nil {
 			span.SetStatus(codes.Error, "business logic failed")
-
-			requestCounter.WithLabelValues(r.URL.Path, r.Method, "500").Inc()
-			requestDuration.WithLabelValues(r.URL.Path, r.Method).Observe(time.Since(start).Seconds())
+			status = http.StatusInternalServerError
 
 			logJSON(ctx, "error", "business logic failed", map[string]interface{}{
-				"path":       r.URL.Path,
-				"method":     r.Method,
-				"status":     http.StatusInternalServerError,
+				"path":       path,
+				"method":     method,
+				"status":     status,
 				"latency_ms": time.Since(start).Milliseconds(),
 				"error":      err.Error(),
 			})
 
-			http.Error(w, "internal failure", http.StatusInternalServerError)
+			http.Error(w, "internal failure", status)
 			return
 		}
 
@@ -228,13 +236,6 @@ func main() {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte(`{"message":"hello from grafana demo"}`))
-
-		status := http.StatusOK
-		path := r.URL.Path
-		method := r.Method
-
-		requestCounter.WithLabelValues(path, method, "200").Inc()
-		requestDuration.WithLabelValues(path, method).Observe(time.Since(start).Seconds())
 
 		logJSON(ctx, "info", "handled request", map[string]interface{}{
 			"path":       path,

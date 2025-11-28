@@ -75,11 +75,15 @@ releases:
     namespace: app
     chart: ./charts/app
     version: 0.1.0
+    values:
+      - values/app-1.yaml
 
   - name: app-2
     namespace: app
     chart: ./charts/app
     version: 0.1.0
+    values:
+      - values/app-2.yaml
 
   - name: k6-load
     namespace: app

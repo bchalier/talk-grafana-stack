@@ -5,11 +5,9 @@ grafana:
     grafana: primary
   adminUser: admin
   adminPassword: admin
-  dataStorage:
+  persistence:
     enabled: true
     size: 1Gi
-    accessModes:
-      - ReadWriteOnce
   service:
     type: ClusterIP
 
