@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mail
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mail
+  template:
+    metadata:
+      name: mail
+      labels:
+        app: mail
+    spec:
+      containers:
+        - name: mail
+          image: axllent/mailpit
+          imagePullPolicy: IfNotPresent
+          args:
+            - --smtp-tls-cert=sans:mail.mail.svc.cluster.local,mail.mail.svc,mail
+            - --smtp-tls-key=sans:mail.mail.svc.cluster.local,mail.mail.svc,mail
+            - --smtp-require-starttls
+          ports:
+            - containerPort: 8025
+              protocol: TCP
+            - containerPort: 1025
+              protocol: TCP
+      restartPolicy: Always
+      

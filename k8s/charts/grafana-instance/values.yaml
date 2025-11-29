@@ -11,6 +11,18 @@ grafana:
     size: 1Gi
   service:
     type: ClusterIP
+  alertmanager:
+    enabled: true
+    url: http://mimir-alertmanager.mimir.svc.cluster.local:9093
+    orgId: demo
+  smtp:
+    enabled: true
+    host: mail:1025
+    fromAddress: grafana-alerts@example.com
+    fromName: Grafana Alerts
+    skipVerify: true
+  alerting:
+    emailTo: alerts@mailpit.local
 
 datasources:
   loki:

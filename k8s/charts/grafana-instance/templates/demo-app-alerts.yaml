@@ -70,10 +70,10 @@ spec:
               type: "__expr__"
               uid: "-100"
     - title: "High HTTP error rate"
-      condition: "A"
+      condition: "C"
       uid: "demo-app-high-error-rate"
       annotations:
-        summary: "HTTP error rate > 10% for the demo app"
+        summary: "HTTP error rate > 5% for the demo app"
       labels:
         service: "grafana-demo-app"
         severity: "warning"
@@ -93,26 +93,29 @@ spec:
             datasource:
               type: "prometheus"
               uid: {{ .Values.demoAppObservability.prometheusDatasource | quote }}
-    - title: "Slow DB detected"
-      condition: "A"
-      uid: "demo-app-slow-db"
-      annotations:
-        summary: "Slow DB log events detected for demo app"
-      labels:
-        service: "grafana-demo-app"
-        severity: "warning"
-      noDataState: "NoData"
-      execErrState: "Error"
-      data:
-        - refId: "A"
+        - refId: "B"
           relativeTimeRange:
-            from: 60
+            from: 120
             to: 0
-          datasourceUid: {{ .Values.demoAppObservability.lokiDatasource | quote }}
+          datasourceUid: "-100"
           model:
-            expr: "sum(rate({app=\"grafana-demo-app\"} |= \"slow_db\"[1m]))"
-            queryType: "range"
+            expression: "A"
+            type: "reduce"
+            reducer: "last"
+            settings:
+              mode: "dropNN"
             datasource:
-              type: "loki"
-              uid: {{ .Values.demoAppObservability.lokiDatasource | quote }}
+              type: "__expr__"
+              uid: "-100"
+        - refId: "C"
+          relativeTimeRange:
+            from: 120
+            to: 0
+          datasourceUid: "-100"
+          model:
+            expression: "$B > 0.05"
+            type: "math"
+            datasource:
+              type: "__expr__"
+              uid: "-100"
 {{- end }}

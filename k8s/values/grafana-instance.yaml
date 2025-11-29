@@ -5,6 +5,13 @@ grafana:
     grafana: primary
   persistence:
     size: 1Gi
+  smtp:
+    host: mail:1025
+    fromAddress: grafana-alerts@example.com
+    fromName: Grafana Alerts
+    skipVerify: true
+  alerting:
+    emailTo: alerts@mailpit.local
 
 datasources:
   loki:

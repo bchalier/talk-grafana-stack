@@ -20,6 +20,29 @@ spec:
     security:
       admin_user: {{ .Values.grafana.adminUser | quote }}
       admin_password: {{ .Values.grafana.adminPassword | quote }}
+    {{- if .Values.grafana.smtp.enabled }}
+    smtp:
+      enabled: {{ default false .Values.grafana.smtp.enabled | quote }}
+      host: {{ .Values.grafana.smtp.host | quote }}
+      {{- if .Values.grafana.smtp.fromAddress }}
+      from_address: {{ .Values.grafana.smtp.fromAddress | quote }}
+      {{- end }}
+      {{- if .Values.grafana.smtp.fromName }}
+      from_name: {{ .Values.grafana.smtp.fromName | quote }}
+      {{- end }}
+      skip_verify: {{ default false .Values.grafana.smtp.skipVerify | quote }}
+    {{- end }}
+    {{- if .Values.grafana.alerting.emailTo }}
+    unified_alerting:
+      enabled: "true"
+      alertmanager_config: |
+        route:
+          receiver: "mailpit-default"
+        receivers:
+          - name: "mailpit-default"
+            email_configs:
+              - to: "{{ .Values.grafana.alerting.emailTo }}"
+    {{- end }}
   service:
     spec:
       type: {{ .Values.grafana.service.type | default "ClusterIP" }}
@@ -45,3 +68,17 @@ spec:
               persistentVolumeClaim:
                 claimName: grafana-pvc
   {{- end }}
+  ingress:
+    spec:
+      ingressClassName: nginx
+      rules:
+      - host: grafana.localhost.local
+        http:
+          paths:
+            - path: /
+              pathType: Prefix
+              backend:
+                service:
+                  name: grafana-service
+                  port:
+                    number: 3000

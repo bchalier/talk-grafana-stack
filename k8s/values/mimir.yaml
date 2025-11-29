@@ -24,7 +24,7 @@ mimir:
       s3:
         bucket_name: mimir-ruler
 alertmanager:
-  enabled: true
+  enabled: false
   persistentVolume:
     enableRetentionPolicy: true
     whenDeleted: Delete

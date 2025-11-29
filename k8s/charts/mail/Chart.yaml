@@ -1,0 +1,5 @@
+apiVersion: v2
+description: Auth UI
+name: kratos
+version: 0.1.0
+type: application

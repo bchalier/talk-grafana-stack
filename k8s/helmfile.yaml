@@ -21,6 +21,10 @@ releases:
     values:
       - values/grafana-instance.yaml
 
+  - name: mail
+    namespace: default
+    chart: ./charts/mail
+
   - name: minio-operator
     namespace: default
     chart: minio/operator

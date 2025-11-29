@@ -34,8 +34,8 @@ spec:
           "datasource": { "type": "prometheus", "uid": {{ .Values.demoAppObservability.prometheusDatasource | quote }} },
           "targets": [
             {
-              "expr": "sum(rate(http_requests_total[2m]))",
-              "legendFormat": "RPS",
+              "expr": "sum by (application) (rate(http_requests_total[2m]))",
+              "legendFormat": "{{`{{application}}`}}",
               "refId": "A"
             }
           ],
@@ -48,8 +48,8 @@ spec:
           "datasource": { "type": "prometheus", "uid": {{ .Values.demoAppObservability.prometheusDatasource | quote }} },
           "targets": [
             {
-              "expr": "100 * ( sum(rate(http_requests_total{status!=\"200\"}[2m])) / sum(rate(http_requests_total[2m])) )",
-              "legendFormat": "error_rate_pct",
+              "expr": "100 * ( sum by (application) (rate(http_requests_total{status!=\"200\"}[2m])) / sum by (application) (rate(http_requests_total[2m])) )",
+              "legendFormat": "{{`{{application}}`}}",
               "refId": "A"
             }
           ],
@@ -74,8 +74,8 @@ spec:
           "datasource": { "type": "prometheus", "uid": {{ .Values.demoAppObservability.prometheusDatasource | quote }} },
           "targets": [
             {
-              "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le)) * 1000",
-              "legendFormat": "p95",
+              "expr": "histogram_quantile(0.95, sum by (le, application) (rate(http_request_duration_seconds_bucket[5m]))) * 1000",
+              "legendFormat": "p95 - {{`{{application}}`}}",
               "refId": "A"
             }
           ],
@@ -88,8 +88,8 @@ spec:
           "datasource": { "type": "prometheus", "uid": {{ .Values.demoAppObservability.prometheusDatasource | quote }} },
           "targets": [
             {
-              "expr": "histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket[5m])) by (le)) * 1000",
-              "legendFormat": "p99",
+              "expr": "histogram_quantile(0.99, sum by (le, application) (rate(http_request_duration_seconds_bucket[5m]))) * 1000",
+              "legendFormat": "p99 - {{`{{application}}`}}",
               "refId": "A"
             }
           ],
@@ -115,7 +115,8 @@ spec:
           "datasource": { "type": "loki", "uid": {{ .Values.demoAppObservability.lokiDatasource | quote }} },
           "targets": [
             {
-              "expr": "sum(rate({app=\"grafana-demo-app\"} |= \"slow_db\"[1m]))",
+              "expr": "sum by (application) (rate({application=~\".+\"} |= \"slow_db\"[1m]))",
+              "legendFormat": "{{`{{application}}`}}",
               "refId": "A"
             }
           ],
@@ -128,7 +129,7 @@ spec:
           "datasource": { "type": "loki", "uid": {{ .Values.demoAppObservability.lokiDatasource | quote }} },
           "targets": [
             {
-              "expr": "{app=\"grafana-demo-app\"} |= \"Error\"",
+              "expr": "{application=~\".+\"} |= \"Error\"",
               "refId": "A"
             }
           ],
