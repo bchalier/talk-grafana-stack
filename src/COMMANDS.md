@@ -1,0 +1,1 @@
+- `helmfile apply --skip-diff-on-install --skip-refresh -f k8s/helmfile-0-prerequisites.yaml`

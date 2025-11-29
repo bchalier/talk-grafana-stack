@@ -72,7 +72,7 @@ spec:
     spec:
       ingressClassName: nginx
       rules:
-      - host: grafana.localhost.local
+      - host: grafana.local
         http:
           paths:
             - path: /

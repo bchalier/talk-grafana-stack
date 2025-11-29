@@ -1,0 +1,33 @@
+repositories:
+  - name: grafana
+    url: https://grafana.github.io/helm-charts
+  - name: minio
+    url: https://operator.min.io
+
+releases:
+  - name: grafana-operator
+    namespace: default
+    chart: grafana/grafana-operator
+    version: v5.20.0
+    values:
+      - values/grafana-operator.yaml
+
+  - name: mail
+    namespace: default
+    chart: ./charts/mail
+
+  - name: minio-operator
+    namespace: default
+    chart: minio/operator
+    version: 7.1.1
+    wait: true
+
+  - name: minio
+    needs:
+      - default/minio-operator
+    namespace: default
+    chart: minio/tenant
+    version: 7.1.1
+    values:
+      - values/minio.yaml
+    wait: true

@@ -7,3 +7,7 @@
 127.0.0.1	grafana.localhost.local
 ```
 - create a cluster: `kind create cluster --config cluster.kind`
+
+
+Grafana: http://grafana.local
+Mail: http://mail.local
