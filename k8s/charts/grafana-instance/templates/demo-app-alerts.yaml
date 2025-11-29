@@ -1,0 +1,118 @@
+{{- if .Values.demoAppObservability.enabled }}
+apiVersion: grafana.integreatly.org/v1beta1
+kind: GrafanaAlertRuleGroup
+metadata:
+  name: demo-app-alerts
+  namespace: {{ .Values.grafana.namespace | default .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: grafana
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    grafana: {{ (.Values.grafana.labels.grafana | default "primary") | quote }}
+    {{- range $k, $v := .Values.grafana.labels }}
+    {{- if ne $k "grafana" }}
+    {{ $k }}: {{ $v | quote }}
+    {{- end }}
+    {{- end }}
+spec:
+  instanceSelector:
+    matchLabels:
+      grafana: {{ (.Values.grafana.labels.grafana | default "primary") | quote }}
+  folderUID: demo-app
+  interval: "1m"
+  rules:
+    - title: "High P95 latency"
+      condition: "C"
+      uid: "demo-app-high-p95-latency"
+      annotations:
+        summary: "P95 latency > 1s for the demo app"
+      labels:
+        service: "grafana-demo-app"
+        severity: "critical"
+      noDataState: "NoData"
+      execErrState: "Error"
+      data:
+        - refId: "A"
+          relativeTimeRange:
+            from: 300
+            to: 0
+          datasourceUid: {{ .Values.demoAppObservability.prometheusDatasource | quote }}
+          model:
+            intervalMs: 60000
+            maxDataPoints: 43200
+            expr: "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le))"
+            format: "time_series"
+            datasource:
+              type: "prometheus"
+              uid: {{ .Values.demoAppObservability.prometheusDatasource | quote }}
+        - refId: "B"
+          relativeTimeRange:
+            from: 300
+            to: 0
+          datasourceUid: "-100"
+          model:
+            expression: "A"
+            type: "reduce"
+            reducer: "last"
+            settings:
+              mode: "dropNN"
+            datasource:
+              type: "__expr__"
+              uid: "-100"
+        - refId: "C"
+          relativeTimeRange:
+            from: 300
+            to: 0
+          datasourceUid: "-100"
+          model:
+            expression: "$B > 1"
+            type: "math"
+            datasource:
+              type: "__expr__"
+              uid: "-100"
+    - title: "High HTTP error rate"
+      condition: "A"
+      uid: "demo-app-high-error-rate"
+      annotations:
+        summary: "HTTP error rate > 10% for the demo app"
+      labels:
+        service: "grafana-demo-app"
+        severity: "warning"
+      noDataState: "NoData"
+      execErrState: "Error"
+      data:
+        - refId: "A"
+          relativeTimeRange:
+            from: 120
+            to: 0
+          datasourceUid: {{ .Values.demoAppObservability.prometheusDatasource | quote }}
+          model:
+            intervalMs: 60000
+            maxDataPoints: 43200
+            expr: "( sum(rate(http_requests_total{status!=\"200\"}[2m])) / sum(rate(http_requests_total[2m])) )"
+            format: "time_series"
+            datasource:
+              type: "prometheus"
+              uid: {{ .Values.demoAppObservability.prometheusDatasource | quote }}
+    - title: "Slow DB detected"
+      condition: "A"
+      uid: "demo-app-slow-db"
+      annotations:
+        summary: "Slow DB log events detected for demo app"
+      labels:
+        service: "grafana-demo-app"
+        severity: "warning"
+      noDataState: "NoData"
+      execErrState: "Error"
+      data:
+        - refId: "A"
+          relativeTimeRange:
+            from: 60
+            to: 0
+          datasourceUid: {{ .Values.demoAppObservability.lokiDatasource | quote }}
+          model:
+            expr: "sum(rate({app=\"grafana-demo-app\"} |= \"slow_db\"[1m]))"
+            queryType: "range"
+            datasource:
+              type: "loki"
+              uid: {{ .Values.demoAppObservability.lokiDatasource | quote }}
+{{- end }}

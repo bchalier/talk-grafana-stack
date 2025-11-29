@@ -1,4 +1,5 @@
 grafana:
+  version: 12.3.0
   name: grafana
   namespace: default
   labels:
@@ -25,3 +26,10 @@ datasources:
     enabled: true
     url: http://tempo-query-frontend.tempo.svc.cluster.local:3100
     orgId: demo
+
+demoAppObservability:
+  enabled: true
+  folderTitle: "Demo App Observability"
+  prometheusDatasource: "mimir"
+  lokiDatasource: "loki"
+  tempoDatasource: "tempo"

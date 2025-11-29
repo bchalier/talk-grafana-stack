@@ -4,6 +4,7 @@ tenant:
     requestAutoCert: false
   buckets:
     - name: mimir-blocks
+    - name: mimir-ruler
     - name: loki-chunks
     - name: loki-rules
     - name: loki-admin

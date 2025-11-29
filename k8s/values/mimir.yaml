@@ -15,15 +15,21 @@ mimir:
       backend: s3
       s3:
         bucket_name: mimir-blocks
+    ruler_storage:
+      backend: s3
+      s3:
+        bucket_name: mimir-ruler
+    alertmanager_storage:
+      backend: s3
+      s3:
+        bucket_name: mimir-ruler
 alertmanager:
-  enabled: false
+  enabled: true
   persistentVolume:
     enableRetentionPolicy: true
     whenDeleted: Delete
     whenScaled: Delete
 minio:
-  enabled: false
-ruler:
   enabled: false
 nginx:
   enabled: false

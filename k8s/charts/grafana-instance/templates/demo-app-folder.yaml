@@ -1,0 +1,22 @@
+{{- if .Values.demoAppObservability.enabled }}
+apiVersion: grafana.integreatly.org/v1beta1
+kind: GrafanaFolder
+metadata:
+  name: demo-app-folder
+  namespace: {{ .Values.grafana.namespace | default .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: grafana
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    grafana: {{ (.Values.grafana.labels.grafana | default "primary") | quote }}
+    {{- range $k, $v := .Values.grafana.labels }}
+    {{- if ne $k "grafana" }}
+    {{ $k }}: {{ $v | quote }}
+    {{- end }}
+    {{- end }}
+spec:
+  instanceSelector:
+    matchLabels:
+      grafana: {{ (.Values.grafana.labels.grafana | default "primary") | quote }}
+  title: {{ .Values.demoAppObservability.folderTitle | quote }}
+  uid: demo-app
+{{- end }}

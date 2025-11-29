@@ -2,7 +2,7 @@ replicaCount: 3
 
 image:
   repository: bchalier/grafana-demo-app
-  tag: 5
+  tag: 6
   pullPolicy: IfNotPresent
 
 service:

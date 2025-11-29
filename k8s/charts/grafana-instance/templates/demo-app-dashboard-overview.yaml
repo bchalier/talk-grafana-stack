@@ -1,0 +1,164 @@
+{{- if .Values.demoAppObservability.enabled }}
+apiVersion: grafana.integreatly.org/v1beta1
+kind: GrafanaDashboard
+metadata:
+  name: demo-app-overview
+  namespace: {{ .Values.grafana.namespace | default .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: grafana
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    grafana: {{ (.Values.grafana.labels.grafana | default "primary") | quote }}
+    {{- range $k, $v := .Values.grafana.labels }}
+    {{- if ne $k "grafana" }}
+    {{ $k }}: {{ $v | quote }}
+    {{- end }}
+    {{- end }}
+spec:
+  instanceSelector:
+    matchLabels:
+      grafana: {{ (.Values.grafana.labels.grafana | default "primary") | quote }}
+  folderUID: demo-app
+  resyncPeriod: 30s
+  json: |
+    {
+      "title": "Demo App \u2013 Observability Overview",
+      "schemaVersion": 36,
+      "version": 1,
+      "refresh": "5s",
+      "time": { "from": "now-15m", "to": "now" },
+      "panels": [
+        {
+          "id": 1,
+          "type": "timeseries",
+          "title": "Requests per second",
+          "datasource": { "type": "prometheus", "uid": {{ .Values.demoAppObservability.prometheusDatasource | quote }} },
+          "targets": [
+            {
+              "expr": "sum(rate(http_requests_total[2m]))",
+              "legendFormat": "RPS",
+              "refId": "A"
+            }
+          ],
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 }
+        },
+        {
+          "id": 2,
+          "type": "timeseries",
+          "title": "Error rate (%)",
+          "datasource": { "type": "prometheus", "uid": {{ .Values.demoAppObservability.prometheusDatasource | quote }} },
+          "targets": [
+            {
+              "expr": "100 * ( sum(rate(http_requests_total{status!=\"200\"}[2m])) / sum(rate(http_requests_total[2m])) )",
+              "legendFormat": "error_rate_pct",
+              "refId": "A"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "green", "value": null },
+                  { "color": "red", "value": 10 }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 }
+        },
+        {
+          "id": 3,
+          "type": "timeseries",
+          "title": "P95 latency (ms)",
+          "datasource": { "type": "prometheus", "uid": {{ .Values.demoAppObservability.prometheusDatasource | quote }} },
+          "targets": [
+            {
+              "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le)) * 1000",
+              "legendFormat": "p95",
+              "refId": "A"
+            }
+          ],
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 }
+        },
+        {
+          "id": 4,
+          "type": "timeseries",
+          "title": "P99 latency (ms)",
+          "datasource": { "type": "prometheus", "uid": {{ .Values.demoAppObservability.prometheusDatasource | quote }} },
+          "targets": [
+            {
+              "expr": "histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket[5m])) by (le)) * 1000",
+              "legendFormat": "p99",
+              "refId": "A"
+            }
+          ],
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 }
+        },
+        {
+          "id": 5,
+          "type": "heatmap",
+          "title": "Request latency distribution",
+          "datasource": { "type": "prometheus", "uid": {{ .Values.demoAppObservability.prometheusDatasource | quote }} },
+          "targets": [
+            {
+              "expr": "sum(rate(http_request_duration_seconds_bucket[5m])) by (le)",
+              "refId": "A"
+            }
+          ],
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 }
+        },
+        {
+          "id": 6,
+          "type": "timeseries",
+          "title": "Slow DB log events per minute",
+          "datasource": { "type": "loki", "uid": {{ .Values.demoAppObservability.lokiDatasource | quote }} },
+          "targets": [
+            {
+              "expr": "sum(rate({app=\"grafana-demo-app\"} |= \"slow_db\"[1m]))",
+              "refId": "A"
+            }
+          ],
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 }
+        },
+        {
+          "id": 7,
+          "type": "logs",
+          "title": "Recent error logs",
+          "datasource": { "type": "loki", "uid": {{ .Values.demoAppObservability.lokiDatasource | quote }} },
+          "targets": [
+            {
+              "expr": "{app=\"grafana-demo-app\"} |= \"Error\"",
+              "refId": "A"
+            }
+          ],
+          "options": {
+            "showLabels": true,
+            "showTime": true
+          },
+          "fieldConfig": {
+            "defaults": {
+              "links": []
+            },
+            "overrides": [
+              {
+                "matcher": { "id": "byName", "options": "trace_id" },
+                "properties": [
+                  {
+                    "id": "links",
+                    "value": [
+                      {
+                        "title": "View trace",
+                        "url": {{ printf "/explore?left=%s" ((dict "datasource" .Values.demoAppObservability.tempoDatasource "queries" (list (dict "queryType" "traceql" "query" "trace_id='${__value}'"))) | toJson | urlquery) | quote }}
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          "gridPos": { "h": 8, "w": 24, "x": 0, "y": 24 }
+        }
+      ]
+    }
+{{- end }}

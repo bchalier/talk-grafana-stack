@@ -63,12 +63,12 @@ spec:
       httpHeaderName1: "X-Scope-OrgID"
       tracesToLogs:
         datasourceUid: loki
-        spanStartTimeShift: "1h"
-        spanEndTimeShift: "-1h"
         mapTagNamesEnabled: true
         tags:
           - key: service.name
             value: service
+      tracesToMetrics:
+        datasourceUid: mimir
     secureJsonData:
       httpHeaderValue1: {{ .Values.datasources.tempo.orgId | default "demo" | quote }}
 {{ end }}
