@@ -14,6 +14,7 @@ html
       section.intro
         h1 Observabilité Kubernetes
         h2 La stack Grafana en pratique
+        img(src="images/intro/observe-and-monitor.jpg", alt="Intro meme", style="max-width: 40%; height: auto;")
 
       section.speaker
         img.avatar(src='images/intro/bastien.jpg', alt='Bastien Chalier')
@@ -125,7 +126,8 @@ html
         img(src="images/history/timeline.svg", alt="Timeline", style="max-width: 100%; height: auto;")
 
       section
-        h1 Demo time !
+        h2 Demo time !
+        img(src="images/setup/investigate_meme.jpg", alt="Timeline", style="max-width: 100%; height: auto;")
 
       section
         h2 Commençons par les prérequis
@@ -412,8 +414,370 @@ html
         img(src="images/setup/grafana_stack.png", alt="Grafana stack", style="max-width: 100%; height: auto;")
           
       section
-        h1 http://grafana.local
+        h1 Demo
+        h2 http://grafana.local - http://mail.local
         h2 admin
         h2 8MBxR5x3mL0ZqH2t
 
+      section.full-bleed
+        img(src="images/costs/cat_meme.jpg", alt="Accounting love")
+
+      section
+        h2 Considérations
+        ul.build-items
+          li Prix publics
+          li Logs uniquement
+          li Simplifications
+
+      // --------------------
+      // Pricing models – Datadog
+      // --------------------
+      section.slide
+        h2 Datadog Logs
+        ul
+          li Prix par GB ingéré
+          li Prix par événement indexé
+          li Archive DIY
+
+      section.slide
+        h2 Datadog – Ingestion
+        ul
+          li ≈ $0.10 par GB
+          li 100% des logs
+
+      section.slide
+        h2 Datadog – Indexation
+        ul
+          li Prix par million d'événements
+          li 30j retention ≈ $2.50 par 1M événements
+          li 100% et 10% d'index
+
+      section.slide
+        h2 Hypothèses
+        ul
+          li ≈ 1 kB par événement
+          li 1 GB logs ≈ 1M événements
+          li 100% indexé, 30d ≈ $2.60/GB
+          li 10% indexé, 30d ≈ $0.36/GB
+
+      // --------------------
+      // Modèle de prix – Grafana Cloud
+      // --------------------
+      section.slide
+        h2 Grafana Cloud Logs (Loki)
+        ul
+          li Prix par Go ingéré
+          li Rétention 30 jours incluse
+          li 100% indexé
+
+      section.slide
+        h2 Grafana Cloud – Chiffres
+        ul
+          li Abonnement : 19 $/mois
+          li Inclut 50 Go/mois
+          li ≈ 0,50 $ par Go ingéré
+
+      // --------------------
+      // Modèle de prix – Loki auto-hébergé
+      // --------------------
+      section.slide
+        h2 Loki auto-hébergé
+        ul
+          li Loki sur Kubernetes
+          li Stockage objet
+          li Gestion interne
+
+      section.slide
+        h2 Loki auto-hébergé – coûts
+        ul
+          li Stockage objet
+          li Compute
+          li Réseau
+          li Humains
+
+      section.slide
+        h2 Loki auto-hébergé – Chiffres
+        ul
+          li Basé sur GCP
+          li Avec 3 humains
+          li ≈ 0,15 $ par Go ingéré
+
+      section.slide
+        h2 Récap
+        table
+          thead
+            tr
+              th Offre
+              th Coût estimé / Go
+          tbody
+            tr
+              td Datadog
+              td $2.60/Go (≈ $0.36/Go pour 10%)
+            tr
+              td Grafana Cloud
+              td $0.50/Go
+            tr
+              td Loki sur GCP
+              td $0.15/Go
+
+      // --------------------
+      // Scénario 1 – 50 Go/jour
+      // --------------------
+      section.slide
+        h2 Scénario 1 - Paramètres
+        table
+          thead
+            tr
+              th Paramètre
+              th Valeur
+          tbody
+            tr
+              td Volume journalier
+              td 50 Go/jour
+            tr
+              td Volume mensuel
+              td ≈ 1,5 To/mois (1 500 Go)
+            tr
+              td Rétention
+              td 30 jours
+
+      section.slide
+        h2 Scénario 1 – Datadog (100%)
+        table
+          thead
+            tr
+              th Poste
+              th Montant estimé
+          tbody
+            tr
+              td Ingestion
+              td 1 500 × 0,10 $ ≈ 150 $
+            tr
+              td Indexation (30 j)
+              td 1 500 × 2,50 $ ≈ 3 750 $
+            tr
+              td Total
+              td ≈ 3 900 $/mois
+        p.small Tous les logs sont interrogeables
+
+      section.slide
+        h2 Scénario 1 – Datadog (10%)
+        table
+          thead
+            tr
+              th Poste
+              th Montant estimé
+          tbody
+            tr
+              td Ingestion
+              td 1 500 × 0,10 $ ≈ 150 $
+            tr
+              td Indexation (10 % des logs)
+              td 150 × 2,50 $ ≈ 375 $
+            tr
+              td Total
+              td ≈ 525 $/mois
+        p.small ≈ 10 % des logs sont interrogeables
+
+      section.slide
+        h2 Scénario 1 – Grafana Cloud Logs
+        table
+          thead
+            tr
+              th Poste
+              th Montant estimé
+          tbody
+            tr
+              td Volume facturé
+              td ≈ 1 450 Go × 0,50 $ ≈ 725 $
+            tr
+              td Frais de plateforme
+              td ≈ 19 $
+            tr
+              td Total
+              td ≈ 744 $/mois
+        p.small Tous les logs sont interrogeables
+
+      section.slide
+        h2 Scénario 1 – Loki auto-hébergé
+        table
+          thead
+            tr
+              th Poste
+              th Montant estimé
+          tbody
+            tr
+              td Infra
+              td 1 500 Go × 0,10 $ ≈ 150 $
+            tr
+              td Humains
+              td 1 x 10 000 $
+            tr
+              td Total
+              td ≈ 10 150 $/mois
+        p.small Coût cloud minimal, effort ops élevé
+
+      section.slide
+        h2 Scénario 1 – Conclusion
+        table
+          tbody
+            tr
+              td Datadog 100%
+              td 3 900 $/mois
+            tr
+              td Datadog 10%
+              td 525 $/mois
+            tr
+              td Grafana Cloud
+              td 744 $/mois
+            tr
+              td Auto hebergé
+              td 10 150 $/mois
+
+      // --------------------
+      // Scénario 2 – 20 To/jour (tableaux)
+      // --------------------
+      section.slide
+        h2 Scénario 2
+        table
+          thead
+            tr
+              th Paramètre
+              th Valeur
+          tbody
+            tr
+              td Volume journalier
+              td 20 To/jour
+            tr
+              td Volume mensuel
+              td ≈ 600 To/mois
+            tr
+              td Rétention
+              td 30 jours
+
+      section.slide
+        h2 Scénario 2 – Datadog (100%)
+        table
+          thead
+            tr
+              th Poste
+              th Montant estimé
+          tbody
+            tr
+              td Ingestion
+              td 600 000 × 0,10 $ ≈ 60 k$
+            tr
+              td Indexation (30 j)
+              td 600 000 × 2,50 $ ≈ 1,5 M$
+            tr
+              td Total
+              td ≈ 1,56 M$/mois
+        p.small Il y a de beaux chateaux à ce prix là
+
+      section.slide
+        h2 Scénario 2 – Datadog (10%)
+        table
+          thead
+            tr
+              th Poste
+              th Montant estimé
+          tbody
+            tr
+              td Ingestion
+              td 600 000 × 0,10 $ ≈ 60 k$
+            tr
+              td Indexation (10 % des logs)
+              td 60 000 × 2,50 $ ≈ 150 k$
+            tr
+              td Total
+              td ≈ 210 k$/mois
+        p.small ≈ Mieux, mais seulement 10% des logs
+
+      section.slide
+        h2 Scénario 2 – Grafana Cloud Logs
+        table
+          thead
+            tr
+              th Poste
+              th Montant estimé
+          tbody
+            tr
+              td Logs ingérés
+              td 600 000 Go × 0,50 $
+            tr
+              td Total
+              td ≈ 300 000 $/mois
+        p.small Les frais de plateforme sont négligées à ce niveau
+
+      section.slide
+        h2 Scénario 2 – Loki auto-hébergé
+        table
+          thead
+            tr
+              th Poste
+              th Montant estimé
+          tbody
+            tr
+              td Infra
+              td 600 000 Go × 0,10 $ ≈ 60 000 $
+            tr
+              td Humains
+              td 3 x 30 000 $
+            tr
+              td Total
+              td ≈ 90 000 $/mois
+        p.small Reste largement en dessous des prix SaaS catalogue
+
+      section.slide
+        h2 Scénario 2 – Conclusion
+        table
+          tbody
+            tr
+              td Datadog 100%
+              td 1,56 M$/mois
+            tr
+              td Datadog 10%
+              td 210 k$/mois
+            tr
+              td Grafana Cloud
+              td 300 k$/mois
+            tr
+              td Auto hebergé
+              td 90 k$/mois
+
+      // --------------------
+      // Conclusion
+      // --------------------
+      section.slide
+        h1 Conclusion
+     
+      section.slide
+        h2 Datadog
+          ul
+            li Prêt à l’emploi
+            li Meilleure UX
+            li Plus cher
+     
+      section.slide
+        h2 Grafana + Loki
+          ul
+            li DIY, maintenance importante
+            li Modulaire, mais parfois difficile d'utilisation
+            li Coûts plus maitrisés
+
+      section.slide
+        h2 Message final
+        ul.build-items
+          li Ne loggez pas tout
+          li Ajuster la retention
+          li Contrôlez la cardinalité
+          li Standardisez
+
+      section.full-bleed
+        img(src="images/conclusion/alerts_cat.jpg", alt="It's accounting's problem now")
+
+      section.slide
+        h2 Merci ! Questions ?
+        h3 https://github.com/bchalier/talk-grafana-stack
+          
     script(src='build/build.js')

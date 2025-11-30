@@ -1,0 +1,9 @@
+- tout va bien, montrer les dashboards et alertes
+- mettre une app en chaosSlowDb, l'autre chaosError
+- incident
+- alerte initiale via mail
+- investigation via metrics
+- puis remontée de la trace
+- accès aux logs
+- résolution du soucis
+- revenue à la normale des metrics
