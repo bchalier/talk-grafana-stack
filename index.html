@@ -1,0 +1,852 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <title>Observabilité Kubernetes : la stack Grafana en pratique</title>
+    <link rel="stylesheet" type="text/css" href="build/build.css">
+  </head>
+  <body>
+    <article class="deck">
+      <section class="intro">
+        <h1>Observabilité Kubernetes</h1>
+        <h2>La stack Grafana en pratique</h2><img src="images/intro/observe-and-monitor.jpg" alt="Intro meme" style="max-width: 40%; height: auto;">
+      </section>
+      <section class="speaker"><img class="avatar" src="images/intro/bastien.jpg" alt="Bastien Chalier">
+        <h2>Bastien Chalier</h2>
+        <p>Platform Engineer</p>
+        <p>Co-fondateur de<img class="inline-logo" src="images/intro/fransys.svg" alt="Fransys"></p>
+      </section>
+      <section class="why-what">
+        <h1>Pourquoi observer ? </h1>
+        <h1>Observer quoi ?</h1>
+        <h2>Comprendre avant d'appliquer</h2>
+      </section>
+      <section class="purpose">
+        <h2>Pourquoi observer ? </h2>
+        <ul class="build-items">
+          <li>Monitoring: détecter les anomalies</li>
+          <li>Investigation: comprendre les causes</li>
+          <li>Détails: expliquer l'impact</li>
+        </ul>
+      </section>
+      <section class="what-tools">
+        <h2>Quoi observer ?</h2>
+        <ul class="build-items">
+          <li>Metrics pour monitoring</li>
+          <li>Traces pour investiguer</li>
+          <li>Logs pour détails précis</li>
+        </ul>
+      </section>
+      <section class="where">
+        <h2>Où observer ?</h2>
+        <ul class="build-items">
+          <li class="kube">Kubernetes</li>
+          <li>VM</li>
+          <li>Edge</li>
+          <li>SaaS</li>
+        </ul>
+        <p class="focus-note build" data-focus="kube">Focus sur Kubernetes pour cette session</p>
+      </section>
+      <section>
+        <h1>Mais avec quoi ?</h1>
+      </section>
+      <section>
+        <h1>Un vaste ecosystème</h1><img src="images/intro/observability_landscape_all.png" alt="Observability landscape" style="max-width: 100%; height: auto;">
+      </section>
+      <section>
+        <h1>Avec les clouders</h1><img src="images/intro/observability_landscape_clouders.png" alt="Observability clouders" style="max-width: 100%; height: auto;">
+      </section>
+      <section>
+        <h1>Les SaaS</h1><img src="images/intro/observability_landscape_saas.png" alt="Observability SaaS" style="max-width: 100%; height: auto;">
+      </section>
+      <section>
+        <h1>Les anciens</h1><img src="images/intro/observability_landscape_old.png" alt="Observability anciens" style="max-width: 100%; height: auto;">
+      </section>
+      <section>
+        <h1>Les spécialistes</h1><img src="images/intro/observability_landscape_specialized.png" alt="Observability spécialites" style="max-width: 100%; height: auto;">
+      </section>
+      <section>
+        <h1>L'Open source</h1><img src="images/intro/observability_landscape_oss.png" alt="Observability OSS" style="max-width: 100%; height: auto;">
+      </section>
+      <section>
+        <h1>Grafana Stack</h1>
+        <div class="history-logos"><img src="images/history/grafana.svg" alt="Grafana"><img src="images/history/mimir.svg" alt="Mimir"><img src="images/history/loki.svg" alt="Loki"><img src="images/history/tempo.svg" alt="Tempo"></div>
+      </section>
+      <section>
+        <h2>2013 - Grafana</h2>
+        <ul class="build-items">
+          <li>Kibana fork for metrics</li>
+          <li>Focus on UI</li>
+          <li>Backend agnostic</li>
+        </ul>
+      </section>
+      <section>
+        <h2>2016 - Cortex</h2>
+        <ul class="build-items">
+          <li>Multi-tenant</li>
+          <li>Scalable - HA</li>
+          <li>Long-term storage</li>
+        </ul>
+      </section>
+      <section>
+        <h2>2018 - Loki</h2>
+        <ul class="build-items">
+          <li>1 Po logs/jour</li>
+          <li>Indexer uniquement les labels</li>
+          <li>75% moins cher</li>
+        </ul>
+      </section>
+      <section>
+        <h2>2020 - Tempo</h2>
+        <ul class="build-items">
+          <li>2m spans/s</li>
+          <li>Integration avec metrics/logs</li>
+          <li>Conserver 100% des spans</li>
+        </ul>
+      </section>
+      <section>
+        <h2>2022 - Mimir</h2>
+        <ul class="build-items">
+          <li>1M de séries</li>
+          <li>Sortie de prometheus</li>
+          <li>Stockage bucket</li>
+        </ul>
+      </section>
+      <section class="timeline"><img src="images/history/timeline.svg" alt="Timeline" style="max-width: 100%; height: auto;"></section>
+      <section>
+        <h2>Demo time !</h2><img src="images/setup/investigate_meme.jpg" alt="Timeline" style="max-width: 100%; height: auto;">
+      </section>
+      <section>
+        <h2>Commençons par les prérequis</h2>
+        <ul class="build-items">
+          <li>operateur grafana</li>
+          <li>mailpit</li>
+          <li>operateur minio</li>
+          <li>une pool minio</li>
+        </ul>
+      </section>
+      <section class="code-helmfile">
+        <h2>Helmfile</h2>
+        <pre class="language-yaml"><code>repositories:
+  - name: a-repo
+    [...]
+
+releases:
+  - name: a-helm-release
+    [...]
+  - name: another-helm-release
+    [...]
+</code></pre>
+      </section>
+      <section class="code-helmfile">
+        <h2>Repositories</h2>
+        <pre class="language-yaml"><code>repositories:
+  - name: grafana
+    url: https://grafana.github.io/helm-charts
+  - name: minio
+    url: https://operator.min.io
+</code></pre>
+      </section>
+      <section class="code-helmfile">
+        <h2>Grafana operator</h2>
+        <pre class="language-yaml"><code>releases:
+  - name: grafana-operator
+    namespace: default
+    chart: grafana/grafana-operator
+    version: v5.20.0
+    values:
+      - values/grafana-operator.yaml
+</code></pre>
+      </section>
+      <section class="code-helmfile">
+        <h2>Mailpit</h2>
+        <pre class="language-yaml"><code>- name: mail
+  namespace: default
+  chart: ./charts/mail
+</code></pre>
+      </section>
+      <section class="code-helmfile">
+        <h2>Minio operator</h2>
+        <pre class="language-yaml"><code>- name: minio-operator
+  namespace: default
+  chart: minio/operator
+  version: 7.1.1
+  wait: true
+</code></pre>
+      </section>
+      <section class="code-helmfile">
+        <h2>Minio pool</h2>
+        <pre class="language-yaml"><code>- name: minio
+  needs:
+    - default/minio-operator
+  namespace: default
+  chart: minio/tenant
+  version: 7.1.1
+  values:
+    - values/minio.yaml
+  wait: true
+</code></pre>
+      </section>
+      <section class="code-helmfile">
+        <h2>Minio values</h2>
+        <pre class="language-yaml"><code>tenant:
+  name: grafana-stack
+  certificate:
+    requestAutoCert: false
+  buckets:
+    - name: mimir-blocks
+    - name: mimir-ruler
+    - name: loki-chunks
+    - name: loki-rules
+    - name: loki-admin
+    - name: tempo
+</code></pre>
+      </section>
+      <section class="k9s-output">
+        <pre class="language-bash terminal"><code>NAME                                READY   STATUS
+grafana-operator-79774f8757-f7vwr   1/1     Running
+grafana-stack-pool-0-0              2/2     Running
+grafana-stack-pool-0-1              2/2     Running
+grafana-stack-pool-0-2              2/2     Running
+grafana-stack-pool-0-3              2/2     Running
+mail-759494567f-ck4x4               1/1     Running
+minio-operator-57b9ccf48c-46slt     1/1     Running
+minio-operator-57b9ccf48c-hp6n8     1/1     Running
+</code></pre>
+      </section>
+      <section class="code-helmfile">
+        <h2>Grafana</h2>
+        <pre class="language-yaml"><code>- name: grafana-instance
+  needs:
+    - default/grafana-operator
+  namespace: default
+  chart: ./charts/grafana-instance
+  version: 0.1.0
+  values:
+    - values/grafana-instance.yaml
+</code></pre>
+      </section>
+      <section class="k9s-output">
+        <pre class="language-bash terminal"><code>NAME                                  READY   STATUS
+grafana-deployment-756587d5f8-n5c6d   1/1     Running     
+</code></pre>
+      </section>
+      <section class="code-helmfile">
+        <h2>Mimir</h2>
+        <pre class="language-yaml"><code>- name: mimir
+  needs:
+    - default/minio
+  namespace: mimir
+  chart: grafana/mimir-distributed
+  version: 6.0.3
+  values:
+    - values/mimir.yaml
+</code></pre>
+      </section>
+      <section class="k9s-output">
+        <pre class="language-bash terminal"><code>NAME                                        READY   STATUS
+mimir-compactor-0                           1/1     Running
+mimir-distributor-5dd6f556d8-s9rtz          1/1     Running
+mimir-gateway-6bfc8f6887-bs2rt              1/1     Running
+mimir-ingester-zone-a-0                     1/1     Running
+mimir-ingester-zone-b-0                     1/1     Running
+mimir-ingester-zone-c-0                     1/1     Running
+mimir-kafka-0                               1/1     Running
+mimir-overrides-exporter-7f6f9c6c76-2c8t4   1/1     Running
+mimir-querier-6b675f579-h9t7k               1/1     Running
+mimir-querier-6b675f579-rptdf               1/1     Running
+mimir-query-frontend-6f86c58478-gs5wz       1/1     Running
+mimir-query-scheduler-7bdc8bc45f-9x694      1/1     Running
+mimir-query-scheduler-7bdc8bc45f-dprd6      1/1     Running
+mimir-rollout-operator-77fc876f57-79p26     1/1     Running
+mimir-ruler-6785c8f9d4-92rqp                1/1     Running
+mimir-store-gateway-zone-a-0                1/1     Running
+mimir-store-gateway-zone-b-0                1/1     Running
+mimir-store-gateway-zone-c-0                1/1     Running 
+</code></pre>
+      </section>
+      <section class="code-helmfile">
+        <h2>Loki</h2>
+        <pre class="language-yaml"><code>- name: loki
+  needs:
+    - default/minio
+  namespace: loki
+  chart: grafana/loki
+  version: 6.46.0
+  values:
+    - values/loki.yaml
+</code></pre>
+      </section>
+      <section class="k9s-output">
+        <pre class="language-bash terminal"><code>NAME                                   READY   STATUS
+loki-canary-kn8hs                      1/1     Running
+loki-canary-stzrn                      1/1     Running
+loki-canary-tbx4p                      1/1     Running
+loki-chunks-cache-0                    2/2     Running
+loki-compactor-0                       1/1     Running
+loki-distributor-59f6d9c9f5-8g2sc      1/1     Running
+loki-gateway-cd5f9979f-nv82q           1/1     Running
+loki-index-gateway-0                   1/1     Running
+loki-ingester-zone-a-0                 1/1     Running
+loki-ingester-zone-b-0                 1/1     Running
+loki-ingester-zone-c-0                 1/1     Running
+loki-querier-7596b5d5d7-hjhx9          1/1     Running
+loki-query-frontend-8d9687d44-wxds6    1/1     Running
+loki-query-scheduler-54dd5cc68-wk6q4   1/1     Running
+loki-results-cache-0                   2/2     Running
+</code></pre>
+      </section>
+      <section class="code-helmfile">
+        <h2>Tempo</h2>
+        <pre class="language-yaml"><code>- name: tempo
+  needs:
+    - default/minio
+  namespace: tempo
+  chart: grafana/tempo-distributed
+  version: 1.56.2
+  values:
+    - values/tempo.yaml
+</code></pre>
+      </section>
+      <section class="k9s-output">
+        <pre class="language-bash terminal"><code>NAME                                       READY   STATUS
+tempo-compactor-757578f8b8-xg72q           1/1     Running
+tempo-distributor-5d9dff58c8-5nr5h         1/1     Running
+tempo-gateway-556fd4994d-ns4zg             1/1     Running
+tempo-ingester-0                           1/1     Running
+tempo-ingester-1                           1/1     Running
+tempo-ingester-2                           1/1     Running
+tempo-memcached-0                          1/1     Running
+tempo-metrics-generator-5d57477cf4-ql2cw   1/1     Running
+tempo-querier-6f7468cc5f-47tjn             1/1     Running
+tempo-query-frontend-69d6f694b-pz9pz       1/1     Running
+</code></pre>
+      </section>
+      <section class="code-helmfile">
+        <h2>Alloy</h2>
+        <pre class="language-yaml"><code>- name: alloy
+  namespace: default
+  chart: grafana/alloy
+  version: 1.4.0
+  values:
+    - values/alloy.yaml
+</code></pre>
+      </section>
+      <section class="k9s-output">
+        <pre class="language-bash terminal"><code>NAME                                  READY   STATUS
+alloy-5pfx8                           2/2     Running
+alloy-z46v2                           2/2     Running
+alloy-ztpxx                           2/2     Running
+</code></pre>
+      </section>
+      <section class="code-helmfile">
+        <h2>Applications</h2>
+        <pre class="language-yaml"><code>- name: app-1
+  namespace: app
+  chart: ./charts/app
+  version: 0.1.0
+  values:
+    - values/app-1.yaml
+
+- name: app-2
+  namespace: app
+  chart: ./charts/app
+  version: 0.1.0
+  values:
+    - values/app-2.yaml
+</code></pre>
+      </section>
+      <section class="k9s-output">
+        <pre class="language-bash terminal"><code>NAME                        READY   STATUS
+app-1-app-dcf6fdcb-7kws8    1/1     Running
+app-1-app-dcf6fdcb-pr97c    1/1     Running
+app-1-app-dcf6fdcb-v2pd2    1/1     Running
+app-2-app-5b878bcd8-6mbzh   1/1     Running
+app-2-app-5b878bcd8-phxv8   1/1     Running
+app-2-app-5b878bcd8-x9zj9   1/1     Running
+</code></pre>
+      </section>
+      <section class="code-helmfile">
+        <h2>K6</h2>
+        <pre class="language-yaml"><code>- name: k6-load
+  namespace: app
+  chart: ./charts/k6-load
+  version: 0.1.0
+  values:
+    - values/k6-load.yaml
+</code></pre>
+      </section>
+      <section>
+        <h2>Architecture</h2><img src="images/setup/grafana_stack.png" alt="Grafana stack" style="max-width: 100%; height: auto;">
+      </section>
+      <section>
+        <h1>Demo</h1>
+        <h2>http://grafana.local - http://mail.local</h2>
+        <h2>admin</h2>
+        <h2>8MBxR5x3mL0ZqH2t</h2>
+      </section>
+      <section class="full-bleed"><img src="images/costs/cat_meme.jpg" alt="Accounting love"></section>
+      <section>
+        <h2>Considérations</h2>
+        <ul class="build-items">
+          <li>Prix publics</li>
+          <li>Logs uniquement</li>
+          <li>Simplifications</li>
+        </ul>
+      </section>
+      <!-- ---------------------->
+      <!-- Pricing models – Datadog-->
+      <!-- ---------------------->
+      <section class="slide">
+        <h2>Datadog Logs</h2>
+        <ul>
+          <li>Prix par GB ingéré</li>
+          <li>Prix par événement indexé</li>
+          <li>Archive DIY</li>
+        </ul>
+      </section>
+      <section class="slide">
+        <h2>Datadog – Ingestion</h2>
+        <ul>
+          <li>≈ $0.10 par GB</li>
+          <li>100% des logs</li>
+        </ul>
+      </section>
+      <section class="slide">
+        <h2>Datadog – Indexation</h2>
+        <ul>
+          <li>Prix par million d'événements</li>
+          <li>30j retention ≈ $2.50 par 1M événements</li>
+          <li>100% et 10% d'index</li>
+        </ul>
+      </section>
+      <section class="slide">
+        <h2>Hypothèses</h2>
+        <ul>
+          <li>≈ 1 kB par événement</li>
+          <li>1 GB logs ≈ 1M événements</li>
+          <li>100% indexé, 30d ≈ $2.60/GB</li>
+          <li>10% indexé, 30d ≈ $0.36/GB</li>
+        </ul>
+      </section>
+      <!-- ---------------------->
+      <!-- Modèle de prix – Grafana Cloud-->
+      <!-- ---------------------->
+      <section class="slide">
+        <h2>Grafana Cloud Logs (Loki)</h2>
+        <ul>
+          <li>Prix par Go ingéré</li>
+          <li>Rétention 30 jours incluse</li>
+          <li>100% indexé</li>
+        </ul>
+      </section>
+      <section class="slide">
+        <h2>Grafana Cloud – Chiffres</h2>
+        <ul>
+          <li>Abonnement : 19 $/mois</li>
+          <li>Inclut 50 Go/mois</li>
+          <li>≈ 0,50 $ par Go ingéré</li>
+        </ul>
+      </section>
+      <!-- ---------------------->
+      <!-- Modèle de prix – Loki auto-hébergé-->
+      <!-- ---------------------->
+      <section class="slide">
+        <h2>Loki auto-hébergé</h2>
+        <ul>
+          <li>Loki sur Kubernetes</li>
+          <li>Stockage objet</li>
+          <li>Gestion interne</li>
+        </ul>
+      </section>
+      <section class="slide">
+        <h2>Loki auto-hébergé – coûts</h2>
+        <ul>
+          <li>Stockage objet</li>
+          <li>Compute</li>
+          <li>Réseau</li>
+          <li>Humains</li>
+        </ul>
+      </section>
+      <section class="slide">
+        <h2>Loki auto-hébergé – Chiffres</h2>
+        <ul>
+          <li>Basé sur GCP</li>
+          <li>Avec 3 humains</li>
+          <li>≈ 0,15 $ par Go ingéré</li>
+        </ul>
+      </section>
+      <section class="slide">
+        <h2>Récap</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Offre</th>
+              <th>Coût estimé / Go</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Datadog</td>
+              <td>$2.60/Go (≈ $0.36/Go pour 10%)</td>
+            </tr>
+            <tr>
+              <td>Grafana Cloud</td>
+              <td>$0.50/Go</td>
+            </tr>
+            <tr>
+              <td>Loki sur GCP</td>
+              <td>$0.15/Go</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+      <!-- ---------------------->
+      <!-- Scénario 1 – 50 Go/jour-->
+      <!-- ---------------------->
+      <section class="slide">
+        <h2>Scénario 1 - Paramètres</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Paramètre</th>
+              <th>Valeur</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Volume journalier</td>
+              <td>50 Go/jour</td>
+            </tr>
+            <tr>
+              <td>Volume mensuel</td>
+              <td>≈ 1,5 To/mois (1 500 Go)</td>
+            </tr>
+            <tr>
+              <td>Rétention</td>
+              <td>30 jours</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+      <section class="slide">
+        <h2>Scénario 1 – Datadog (100%)</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Poste</th>
+              <th>Montant estimé</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Ingestion</td>
+              <td>1 500 × 0,10 $ ≈ 150 $</td>
+            </tr>
+            <tr>
+              <td>Indexation (30 j)</td>
+              <td>1 500 × 2,50 $ ≈ 3 750 $</td>
+            </tr>
+            <tr>
+              <td>Total</td>
+              <td>≈ 3 900 $/mois</td>
+            </tr>
+          </tbody>
+        </table>
+        <p class="small">Tous les logs sont interrogeables</p>
+      </section>
+      <section class="slide">
+        <h2>Scénario 1 – Datadog (10%)</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Poste</th>
+              <th>Montant estimé</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Ingestion</td>
+              <td>1 500 × 0,10 $ ≈ 150 $</td>
+            </tr>
+            <tr>
+              <td>Indexation (10 % des logs)</td>
+              <td>150 × 2,50 $ ≈ 375 $</td>
+            </tr>
+            <tr>
+              <td>Total</td>
+              <td>≈ 525 $/mois</td>
+            </tr>
+          </tbody>
+        </table>
+        <p class="small">≈ 10 % des logs sont interrogeables</p>
+      </section>
+      <section class="slide">
+        <h2>Scénario 1 – Grafana Cloud Logs</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Poste</th>
+              <th>Montant estimé</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Volume facturé</td>
+              <td>≈ 1 450 Go × 0,50 $ ≈ 725 $</td>
+            </tr>
+            <tr>
+              <td>Frais de plateforme</td>
+              <td>≈ 19 $</td>
+            </tr>
+            <tr>
+              <td>Total</td>
+              <td>≈ 744 $/mois</td>
+            </tr>
+          </tbody>
+        </table>
+        <p class="small">Tous les logs sont interrogeables</p>
+      </section>
+      <section class="slide">
+        <h2>Scénario 1 – Loki auto-hébergé</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Poste</th>
+              <th>Montant estimé</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Infra</td>
+              <td>1 500 Go × 0,10 $ ≈ 150 $</td>
+            </tr>
+            <tr>
+              <td>Humains</td>
+              <td>1 x 10 000 $</td>
+            </tr>
+            <tr>
+              <td>Total</td>
+              <td>≈ 10 150 $/mois</td>
+            </tr>
+          </tbody>
+        </table>
+        <p class="small">Coût cloud minimal, effort ops élevé</p>
+      </section>
+      <section class="slide">
+        <h2>Scénario 1 – Conclusion</h2>
+        <table>
+          <tbody>
+            <tr>
+              <td>Datadog 100%</td>
+              <td>3 900 $/mois</td>
+            </tr>
+            <tr>
+              <td>Datadog 10%</td>
+              <td>525 $/mois</td>
+            </tr>
+            <tr>
+              <td>Grafana Cloud</td>
+              <td>744 $/mois</td>
+            </tr>
+            <tr>
+              <td>Auto hebergé</td>
+              <td>10 150 $/mois</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+      <!-- ---------------------->
+      <!-- Scénario 2 – 20 To/jour (tableaux)-->
+      <!-- ---------------------->
+      <section class="slide">
+        <h2>Scénario 2</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Paramètre</th>
+              <th>Valeur</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Volume journalier</td>
+              <td>20 To/jour</td>
+            </tr>
+            <tr>
+              <td>Volume mensuel</td>
+              <td>≈ 600 To/mois</td>
+            </tr>
+            <tr>
+              <td>Rétention</td>
+              <td>30 jours</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+      <section class="slide">
+        <h2>Scénario 2 – Datadog (100%)</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Poste</th>
+              <th>Montant estimé</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Ingestion</td>
+              <td>600 000 × 0,10 $ ≈ 60 k$</td>
+            </tr>
+            <tr>
+              <td>Indexation (30 j)</td>
+              <td>600 000 × 2,50 $ ≈ 1,5 M$</td>
+            </tr>
+            <tr>
+              <td>Total</td>
+              <td>≈ 1,56 M$/mois</td>
+            </tr>
+          </tbody>
+        </table>
+        <p class="small">Il y a de beaux chateaux à ce prix là</p>
+      </section>
+      <section class="slide">
+        <h2>Scénario 2 – Datadog (10%)</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Poste</th>
+              <th>Montant estimé</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Ingestion</td>
+              <td>600 000 × 0,10 $ ≈ 60 k$</td>
+            </tr>
+            <tr>
+              <td>Indexation (10 % des logs)</td>
+              <td>60 000 × 2,50 $ ≈ 150 k$</td>
+            </tr>
+            <tr>
+              <td>Total</td>
+              <td>≈ 210 k$/mois</td>
+            </tr>
+          </tbody>
+        </table>
+        <p class="small">≈ Mieux, mais seulement 10% des logs</p>
+      </section>
+      <section class="slide">
+        <h2>Scénario 2 – Grafana Cloud Logs</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Poste</th>
+              <th>Montant estimé</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Logs ingérés</td>
+              <td>600 000 Go × 0,50 $</td>
+            </tr>
+            <tr>
+              <td>Total</td>
+              <td>≈ 300 000 $/mois</td>
+            </tr>
+          </tbody>
+        </table>
+        <p class="small">Les frais de plateforme sont négligées à ce niveau</p>
+      </section>
+      <section class="slide">
+        <h2>Scénario 2 – Loki auto-hébergé</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Poste</th>
+              <th>Montant estimé</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Infra</td>
+              <td>600 000 Go × 0,10 $ ≈ 60 000 $</td>
+            </tr>
+            <tr>
+              <td>Humains</td>
+              <td>3 x 30 000 $</td>
+            </tr>
+            <tr>
+              <td>Total</td>
+              <td>≈ 90 000 $/mois</td>
+            </tr>
+          </tbody>
+        </table>
+        <p class="small">Reste largement en dessous des prix SaaS catalogue</p>
+      </section>
+      <section class="slide">
+        <h2>Scénario 2 – Conclusion</h2>
+        <table>
+          <tbody>
+            <tr>
+              <td>Datadog 100%</td>
+              <td>1,56 M$/mois</td>
+            </tr>
+            <tr>
+              <td>Datadog 10%</td>
+              <td>210 k$/mois</td>
+            </tr>
+            <tr>
+              <td>Grafana Cloud</td>
+              <td>300 k$/mois</td>
+            </tr>
+            <tr>
+              <td>Auto hebergé</td>
+              <td>90 k$/mois</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+      <!-- ---------------------->
+      <!-- Conclusion-->
+      <!-- ---------------------->
+      <section class="slide">
+        <h1>Conclusion</h1>
+      </section>
+      <section class="slide">
+        <h2>Datadog
+          <ul>
+            <li>Prêt à l’emploi</li>
+            <li>Meilleure UX</li>
+            <li>Plus cher</li>
+          </ul>
+        </h2>
+      </section>
+      <section class="slide">
+        <h2>Grafana + Loki
+          <ul>
+            <li>DIY, maintenance importante</li>
+            <li>Modulaire, mais parfois difficile d'utilisation</li>
+            <li>Coûts plus maitrisés</li>
+          </ul>
+        </h2>
+      </section>
+      <section class="slide">
+        <h2>Message final</h2>
+        <ul class="build-items">
+          <li>Ne loggez pas tout</li>
+          <li>Ajuster la retention</li>
+          <li>Contrôlez la cardinalité</li>
+          <li>Standardisez</li>
+        </ul>
+      </section>
+      <section class="full-bleed"><img src="images/conclusion/alerts_cat.jpg" alt="It's accounting's problem now"></section>
+      <section class="slide">
+        <h2>Merci ! Questions ?</h2>
+        <h3>https://github.com/bchalier/talk-grafana-stack</h3>
+      </section>
+    </article>
+    <script src="build/build.js"></script>
+  </body>
+</html>
