@@ -115,16 +115,8 @@
       </section>
       <section class="timeline"><img src="images/history/timeline.svg" alt="Timeline" style="max-width: 100%; height: auto;"></section>
       <section>
-        <h2>Demo time !</h2><img src="images/setup/investigate_meme.jpg" alt="Timeline" style="max-width: 100%; height: auto;">
-      </section>
-      <section>
-        <h2>Commençons par les prérequis</h2>
-        <ul class="build-items">
-          <li>operateur grafana</li>
-          <li>mailpit</li>
-          <li>operateur minio</li>
-          <li>une pool minio</li>
-        </ul>
+        <h1>Demo time !</h1>
+        <h2>La construction</h2>
       </section>
       <section class="code-helmfile">
         <h2>Helmfile</h2>
@@ -139,54 +131,14 @@ releases:
     [...]
 </code></pre>
       </section>
-      <section class="code-helmfile">
-        <h2>Repositories</h2>
-        <pre class="language-yaml"><code>repositories:
-  - name: grafana
-    url: https://grafana.github.io/helm-charts
-  - name: minio
-    url: https://operator.min.io
-</code></pre>
-      </section>
-      <section class="code-helmfile">
-        <h2>Grafana operator</h2>
-        <pre class="language-yaml"><code>releases:
-  - name: grafana-operator
-    namespace: default
-    chart: grafana/grafana-operator
-    version: v5.20.0
-    values:
-      - values/grafana-operator.yaml
-</code></pre>
-      </section>
-      <section class="code-helmfile">
-        <h2>Mailpit</h2>
-        <pre class="language-yaml"><code>- name: mail
-  namespace: default
-  chart: ./charts/mail
-</code></pre>
-      </section>
-      <section class="code-helmfile">
-        <h2>Minio operator</h2>
-        <pre class="language-yaml"><code>- name: minio-operator
-  namespace: default
-  chart: minio/operator
-  version: 7.1.1
-  wait: true
-</code></pre>
-      </section>
-      <section class="code-helmfile">
-        <h2>Minio pool</h2>
-        <pre class="language-yaml"><code>- name: minio
-  needs:
-    - default/minio-operator
-  namespace: default
-  chart: minio/tenant
-  version: 7.1.1
-  values:
-    - values/minio.yaml
-  wait: true
-</code></pre>
+      <section>
+        <h2>Commençons par les prérequis</h2>
+        <ul class="build-items">
+          <li>operateur grafana</li>
+          <li>mailpit</li>
+          <li>operateur minio</li>
+          <li>une pool minio</li>
+        </ul>
       </section>
       <section class="code-helmfile">
         <h2>Minio values</h2>
@@ -203,190 +155,36 @@ releases:
     - name: tempo
 </code></pre>
       </section>
-      <section class="k9s-output">
-        <pre class="language-bash terminal"><code>NAME                                READY   STATUS
-grafana-operator-79774f8757-f7vwr   1/1     Running
-grafana-stack-pool-0-0              2/2     Running
-grafana-stack-pool-0-1              2/2     Running
-grafana-stack-pool-0-2              2/2     Running
-grafana-stack-pool-0-3              2/2     Running
-mail-759494567f-ck4x4               1/1     Running
-minio-operator-57b9ccf48c-46slt     1/1     Running
-minio-operator-57b9ccf48c-hp6n8     1/1     Running
-</code></pre>
-      </section>
       <section class="code-helmfile">
         <h2>Grafana</h2>
-        <pre class="language-yaml"><code>- name: grafana-instance
-  needs:
-    - default/grafana-operator
-  namespace: default
-  chart: ./charts/grafana-instance
-  version: 0.1.0
-  values:
-    - values/grafana-instance.yaml
-</code></pre>
-      </section>
-      <section class="k9s-output">
-        <pre class="language-bash terminal"><code>NAME                                  READY   STATUS
-grafana-deployment-756587d5f8-n5c6d   1/1     Running     
-</code></pre>
+        <ul class="build-items">
+          <li>l'interface</li>
+          <li>les data sources</li>
+          <li>les dashboards</li>
+          <li>les alertes</li>
+        </ul>
       </section>
       <section class="code-helmfile">
-        <h2>Mimir</h2>
-        <pre class="language-yaml"><code>- name: mimir
-  needs:
-    - default/minio
-  namespace: mimir
-  chart: grafana/mimir-distributed
-  version: 6.0.3
-  values:
-    - values/mimir.yaml
-</code></pre>
-      </section>
-      <section class="k9s-output">
-        <pre class="language-bash terminal"><code>NAME                                        READY   STATUS
-mimir-compactor-0                           1/1     Running
-mimir-distributor-5dd6f556d8-s9rtz          1/1     Running
-mimir-gateway-6bfc8f6887-bs2rt              1/1     Running
-mimir-ingester-zone-a-0                     1/1     Running
-mimir-ingester-zone-b-0                     1/1     Running
-mimir-ingester-zone-c-0                     1/1     Running
-mimir-kafka-0                               1/1     Running
-mimir-overrides-exporter-7f6f9c6c76-2c8t4   1/1     Running
-mimir-querier-6b675f579-h9t7k               1/1     Running
-mimir-querier-6b675f579-rptdf               1/1     Running
-mimir-query-frontend-6f86c58478-gs5wz       1/1     Running
-mimir-query-scheduler-7bdc8bc45f-9x694      1/1     Running
-mimir-query-scheduler-7bdc8bc45f-dprd6      1/1     Running
-mimir-rollout-operator-77fc876f57-79p26     1/1     Running
-mimir-ruler-6785c8f9d4-92rqp                1/1     Running
-mimir-store-gateway-zone-a-0                1/1     Running
-mimir-store-gateway-zone-b-0                1/1     Running
-mimir-store-gateway-zone-c-0                1/1     Running 
-</code></pre>
+        <h2>Mimir - 2.*</h2><img src="images/setup/mimir_2.webp" alt="Mimir 2" style="max-width: 70%; height: auto;">
       </section>
       <section class="code-helmfile">
-        <h2>Loki</h2>
-        <pre class="language-yaml"><code>- name: loki
-  needs:
-    - default/minio
-  namespace: loki
-  chart: grafana/loki
-  version: 6.46.0
-  values:
-    - values/loki.yaml
-</code></pre>
-      </section>
-      <section class="k9s-output">
-        <pre class="language-bash terminal"><code>NAME                                   READY   STATUS
-loki-canary-kn8hs                      1/1     Running
-loki-canary-stzrn                      1/1     Running
-loki-canary-tbx4p                      1/1     Running
-loki-chunks-cache-0                    2/2     Running
-loki-compactor-0                       1/1     Running
-loki-distributor-59f6d9c9f5-8g2sc      1/1     Running
-loki-gateway-cd5f9979f-nv82q           1/1     Running
-loki-index-gateway-0                   1/1     Running
-loki-ingester-zone-a-0                 1/1     Running
-loki-ingester-zone-b-0                 1/1     Running
-loki-ingester-zone-c-0                 1/1     Running
-loki-querier-7596b5d5d7-hjhx9          1/1     Running
-loki-query-frontend-8d9687d44-wxds6    1/1     Running
-loki-query-scheduler-54dd5cc68-wk6q4   1/1     Running
-loki-results-cache-0                   2/2     Running
-</code></pre>
+        <h2>Mimir - 3.*</h2><img src="images/setup/mimir_3.png" alt="Mimir 3" style="max-width: 100%; height: auto;">
       </section>
       <section class="code-helmfile">
-        <h2>Tempo</h2>
-        <pre class="language-yaml"><code>- name: tempo
-  needs:
-    - default/minio
-  namespace: tempo
-  chart: grafana/tempo-distributed
-  version: 1.56.2
-  values:
-    - values/tempo.yaml
-</code></pre>
-      </section>
-      <section class="k9s-output">
-        <pre class="language-bash terminal"><code>NAME                                       READY   STATUS
-tempo-compactor-757578f8b8-xg72q           1/1     Running
-tempo-distributor-5d9dff58c8-5nr5h         1/1     Running
-tempo-gateway-556fd4994d-ns4zg             1/1     Running
-tempo-ingester-0                           1/1     Running
-tempo-ingester-1                           1/1     Running
-tempo-ingester-2                           1/1     Running
-tempo-memcached-0                          1/1     Running
-tempo-metrics-generator-5d57477cf4-ql2cw   1/1     Running
-tempo-querier-6f7468cc5f-47tjn             1/1     Running
-tempo-query-frontend-69d6f694b-pz9pz       1/1     Running
-</code></pre>
-      </section>
-      <section class="code-helmfile">
-        <h2>Alloy</h2>
-        <pre class="language-yaml"><code>- name: alloy
-  namespace: default
-  chart: grafana/alloy
-  version: 1.4.0
-  values:
-    - values/alloy.yaml
-</code></pre>
-      </section>
-      <section class="k9s-output">
-        <pre class="language-bash terminal"><code>NAME                                  READY   STATUS
-alloy-5pfx8                           2/2     Running
-alloy-z46v2                           2/2     Running
-alloy-ztpxx                           2/2     Running
-</code></pre>
-      </section>
-      <section class="code-helmfile">
-        <h2>Applications</h2>
-        <pre class="language-yaml"><code>- name: app-1
-  namespace: app
-  chart: ./charts/app
-  version: 0.1.0
-  values:
-    - values/app-1.yaml
-
-- name: app-2
-  namespace: app
-  chart: ./charts/app
-  version: 0.1.0
-  values:
-    - values/app-2.yaml
-</code></pre>
-      </section>
-      <section class="k9s-output">
-        <pre class="language-bash terminal"><code>NAME                        READY   STATUS
-app-1-app-dcf6fdcb-7kws8    1/1     Running
-app-1-app-dcf6fdcb-pr97c    1/1     Running
-app-1-app-dcf6fdcb-v2pd2    1/1     Running
-app-2-app-5b878bcd8-6mbzh   1/1     Running
-app-2-app-5b878bcd8-phxv8   1/1     Running
-app-2-app-5b878bcd8-x9zj9   1/1     Running
-</code></pre>
-      </section>
-      <section class="code-helmfile">
-        <h2>K6</h2>
-        <pre class="language-yaml"><code>- name: k6-load
-  namespace: app
-  chart: ./charts/k6-load
-  version: 0.1.0
-  values:
-    - values/k6-load.yaml
-</code></pre>
+        <h2>Le reste</h2>
+        <ul class="build-items">
+          <li>Loki</li>
+          <li>Tempo</li>
+          <li>Alloy</li>
+          <li>Applications</li>
+          <li>K6</li>
+        </ul>
       </section>
       <section>
         <h2>Architecture</h2><img src="images/setup/grafana_stack.png" alt="Grafana stack" style="max-width: 100%; height: auto;">
       </section>
-      <section>
-        <h1>Demo</h1>
-        <h2>http://grafana.local - http://mail.local</h2>
-        <h2>admin</h2>
-        <h2>8MBxR5x3mL0ZqH2t</h2>
-      </section>
-      <section class="full-bleed"><img src="images/costs/cat_meme.jpg" alt="Accounting love"></section>
+      <section class="full-bleed"><img src="images/setup/investigate_meme.jpg" alt="Timeline" style="max-width: 90%; height: auto;"></section>
+      <section class="full-bleed"><img src="images/costs/intro.png" alt="Accounting love"></section>
       <section>
         <h2>Considérations</h2>
         <ul class="build-items">
@@ -819,7 +617,16 @@ app-2-app-5b878bcd8-x9zj9   1/1     Running
           <ul>
             <li>Prêt à l’emploi</li>
             <li>Meilleure UX</li>
-            <li>Plus cher</li>
+            <li>Le plus cher</li>
+          </ul>
+        </h2>
+      </section>
+      <section class="slide">
+        <h2>Grafana Cloud
+          <ul>
+            <li>Pas de maintenance</li>
+            <li>100% des données</li>
+            <li>Prix acceptable</li>
           </ul>
         </h2>
       </section>
@@ -833,6 +640,15 @@ app-2-app-5b878bcd8-x9zj9   1/1     Running
         </h2>
       </section>
       <section class="slide">
+        <h2>Loki - Limitations
+          <ul>
+            <li>Index limité</li>
+            <li>Performance</li>
+            <li>Recherche full-text</li>
+          </ul>
+        </h2>
+      </section>
+      <section class="slide">
         <h2>Message final</h2>
         <ul class="build-items">
           <li>Ne loggez pas tout</li>
@@ -841,7 +657,7 @@ app-2-app-5b878bcd8-x9zj9   1/1     Running
           <li>Standardisez</li>
         </ul>
       </section>
-      <section class="full-bleed"><img src="images/conclusion/alerts_cat.jpg" alt="It's accounting's problem now"></section>
+      <section class="full-bleed"><img src="images/conclusion/alerts_cat.jpg" alt="Alerts everywhere"></section>
       <section class="slide">
         <h2>Merci ! Questions ?</h2>
         <h3>https://github.com/bchalier/talk-grafana-stack</h3>
