@@ -9,7 +9,6 @@
 - create a cluster: `kind create cluster --config cluster.kind`
 - have nginx-ingress installed: `kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml`
 - apply all: `helmfile apply --skip-diff-on-install --suppress-diff --wait -f k8s/helmfile.yaml`
-- apply step: `helmfile apply --suppress-diff --wait -f k8s/helmfile-0-prerequisites.yaml`
 
 
 Grafana: http://grafana.local

@@ -77,7 +77,7 @@ spec:
       labels:
         service: "grafana-demo-app"
         severity: "warning"
-      noDataState: "NoData"
+      noDataState: "OK"
       execErrState: "Error"
       data:
         - refId: "A"
