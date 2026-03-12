@@ -1,0 +1,185 @@
+apiVersion: grafana.integreatly.org/v1beta1
+kind: GrafanaAlertRuleGroup
+metadata:
+  name: mimir-instance-limits-alerts
+spec:
+  allowCrossNamespaceImport: true
+  instanceSelector:
+    matchLabels:
+      grafana: primary
+  folderRef: mimir
+  interval: 1m
+  rules:
+  - uid: mimiringesterreachingserieslimit
+    title: MimirIngesterReachingSeriesLimit
+    condition: A
+    execErrState: Error
+    noDataState: OK
+    data:
+    - refId: A
+      queryType: promql
+      relativeTimeRange:
+        from: 60
+      datasourceUid: mimir
+      model:
+        datasource:
+          type: prometheus
+          uid: mimir
+        expr: "(\n    (cortex_ingester_memory_series / ignoring(limit) cortex_ingester_instance_limits{limit=\"\
+          max_series\"})\n    and ignoring (limit)\n    (cortex_ingester_instance_limits{limit=\"\
+          max_series\"} > 0)\n) > 0.8\n"
+        interval: ''
+        legendFormat: ''
+        refId: A
+    for: 3h
+    labels:
+      severity: warning
+    annotations:
+      message: Ingester {{ "{{" }} $labels.job }}/{{ "{{" }} $labels.pod }} has reached
+        {{ "{{" }} $value | humanizePercentage }} of its series limit.
+      runbook_url: https://grafana.com/docs/mimir/latest/operators-guide/mimir-runbooks/#mimiringesterreachingserieslimit
+  - uid: mimiringesterreachingserieslimit
+    title: MimirIngesterReachingSeriesLimit
+    condition: A
+    execErrState: Error
+    noDataState: OK
+    data:
+    - refId: A
+      queryType: promql
+      relativeTimeRange:
+        from: 60
+      datasourceUid: mimir
+      model:
+        datasource:
+          type: prometheus
+          uid: mimir
+        expr: "(\n    (cortex_ingester_memory_series / ignoring(limit) cortex_ingester_instance_limits{limit=\"\
+          max_series\"})\n    and ignoring (limit)\n    (cortex_ingester_instance_limits{limit=\"\
+          max_series\"} > 0)\n) > 0.9\n"
+        interval: ''
+        legendFormat: ''
+        refId: A
+    for: 5m
+    labels:
+      severity: critical
+    annotations:
+      message: Ingester {{ "{{" }} $labels.job }}/{{ "{{" }} $labels.pod }} has reached
+        {{ "{{" }} $value | humanizePercentage }} of its series limit.
+      runbook_url: https://grafana.com/docs/mimir/latest/operators-guide/mimir-runbooks/#mimiringesterreachingserieslimit
+  - uid: mimiringesterreachingtenantslimit
+    title: MimirIngesterReachingTenantsLimit
+    condition: A
+    execErrState: Error
+    noDataState: OK
+    data:
+    - refId: A
+      queryType: promql
+      relativeTimeRange:
+        from: 60
+      datasourceUid: mimir
+      model:
+        datasource:
+          type: prometheus
+          uid: mimir
+        expr: "(\n    (cortex_ingester_memory_users / ignoring(limit) cortex_ingester_instance_limits{limit=\"\
+          max_tenants\"})\n    and ignoring (limit)\n    (cortex_ingester_instance_limits{limit=\"\
+          max_tenants\"} > 0)\n) > 0.7\n"
+        interval: ''
+        legendFormat: ''
+        refId: A
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      message: Ingester {{ "{{" }} $labels.job }}/{{ "{{" }} $labels.pod }} has reached
+        {{ "{{" }} $value | humanizePercentage }} of its tenant limit.
+      runbook_url: https://grafana.com/docs/mimir/latest/operators-guide/mimir-runbooks/#mimiringesterreachingtenantslimit
+  - uid: mimiringesterreachingtenantslimit
+    title: MimirIngesterReachingTenantsLimit
+    condition: A
+    execErrState: Error
+    noDataState: OK
+    data:
+    - refId: A
+      queryType: promql
+      relativeTimeRange:
+        from: 60
+      datasourceUid: mimir
+      model:
+        datasource:
+          type: prometheus
+          uid: mimir
+        expr: "(\n    (cortex_ingester_memory_users / ignoring(limit) cortex_ingester_instance_limits{limit=\"\
+          max_tenants\"})\n    and ignoring (limit)\n    (cortex_ingester_instance_limits{limit=\"\
+          max_tenants\"} > 0)\n) > 0.8\n"
+        interval: ''
+        legendFormat: ''
+        refId: A
+    for: 5m
+    labels:
+      severity: critical
+    annotations:
+      message: Ingester {{ "{{" }} $labels.job }}/{{ "{{" }} $labels.pod }} has reached
+        {{ "{{" }} $value | humanizePercentage }} of its tenant limit.
+      runbook_url: https://grafana.com/docs/mimir/latest/operators-guide/mimir-runbooks/#mimiringesterreachingtenantslimit
+  - uid: mimirreachingtcpconnectionslimit
+    title: MimirReachingTCPConnectionsLimit
+    condition: A
+    execErrState: Error
+    noDataState: OK
+    data:
+    - refId: A
+      queryType: promql
+      relativeTimeRange:
+        from: 60
+      datasourceUid: mimir
+      model:
+        datasource:
+          type: prometheus
+          uid: mimir
+        expr: 'cortex_tcp_connections / cortex_tcp_connections_limit > 0.8 and
+
+          cortex_tcp_connections_limit > 0
+
+          '
+        interval: ''
+        legendFormat: ''
+        refId: A
+    for: 5m
+    labels:
+      severity: critical
+    annotations:
+      message: Mimir instance {{ "{{" }} $labels.job }}/{{ "{{" }} $labels.pod }}
+        has reached {{ "{{" }} $value | humanizePercentage }} of its TCP connections
+        limit for {{ "{{" }} $labels.protocol }} protocol.
+      runbook_url: https://grafana.com/docs/mimir/latest/operators-guide/mimir-runbooks/#mimirreachingtcpconnectionslimit
+  - uid: mim-077783e8407aece1a37bef17485c600b8e13
+    title: MimirDistributorReachingInflightPushRequestLimit
+    condition: A
+    execErrState: Error
+    noDataState: OK
+    data:
+    - refId: A
+      queryType: promql
+      relativeTimeRange:
+        from: 60
+      datasourceUid: mimir
+      model:
+        datasource:
+          type: prometheus
+          uid: mimir
+        expr: "(\n    (cortex_distributor_inflight_push_requests / ignoring(limit)\
+          \ cortex_distributor_instance_limits{limit=\"max_inflight_push_requests\"\
+          })\n    and ignoring (limit)\n    (cortex_distributor_instance_limits{limit=\"\
+          max_inflight_push_requests\"} > 0)\n) > 0.8\n"
+        interval: ''
+        legendFormat: ''
+        refId: A
+    for: 5m
+    labels:
+      severity: critical
+    annotations:
+      message: Distributor {{ "{{" }} $labels.job }}/{{ "{{" }} $labels.pod }} has
+        reached {{ "{{" }} $value | humanizePercentage }} of its inflight push request
+        limit.
+      runbook_url: https://grafana.com/docs/mimir/latest/operators-guide/mimir-runbooks/#mimirdistributorreachinginflightpushrequestlimit

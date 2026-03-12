@@ -81,6 +81,67 @@ alloy:
           regex         = "(.+)"
           replacement   = "$1"
         }
+        rule {
+          source_labels = ["__meta_kubernetes_namespace"]
+          target_label  = "namespace"
+        }
+        rule {
+          source_labels = ["__meta_kubernetes_pod_name"]
+          target_label  = "pod"
+        }
+        rule {
+          target_label = "cluster"
+          replacement  = "demo-cluster"
+        }
+      }
+
+      // Scrape Mimir, Loki, and Tempo self-observability metrics from their http-metrics ports.
+      discovery.relabel "platform_metrics" {
+        targets = discovery.kubernetes.pods.targets
+        rule {
+          source_labels = ["__meta_kubernetes_namespace"]
+          action        = "keep"
+          regex         = "(mimir|loki|tempo)"
+        }
+        rule {
+          source_labels = ["__meta_kubernetes_pod_container_port_name"]
+          action        = "keep"
+          regex         = "http-metrics"
+        }
+        rule {
+          source_labels = ["__meta_kubernetes_pod_ip", "__meta_kubernetes_pod_container_port_number"]
+          separator     = ":"
+          target_label  = "__address__"
+          replacement   = "$1:$2"
+        }
+        rule {
+          source_labels = ["__meta_kubernetes_namespace"]
+          target_label  = "namespace"
+        }
+        rule {
+          source_labels = ["__meta_kubernetes_pod_name"]
+          target_label  = "pod"
+        }
+        rule {
+          source_labels = ["__meta_kubernetes_pod_label_app_kubernetes_io_instance", "__meta_kubernetes_pod_label_app_kubernetes_io_component"]
+          separator     = "/"
+          target_label  = "job"
+          replacement   = "$1/$2"
+        }
+        rule {
+          source_labels = ["job"]
+          regex         = "(.+)/"
+          target_label  = "job"
+          replacement   = "$1"
+        }
+        rule {
+          source_labels = ["__meta_kubernetes_pod_label_app_kubernetes_io_instance"]
+          target_label  = "application"
+        }
+        rule {
+          target_label = "cluster"
+          replacement  = "demo-cluster"
+        }
       }
 
       // =========================================
@@ -126,6 +187,13 @@ alloy:
       prometheus.scrape "kubernetes_pods" {
         targets         = discovery.relabel.pods_metrics.output
         job_name        = "kubernetes-pods"
+        scrape_interval = "30s"
+        forward_to      = [prometheus.remote_write.default.receiver]
+      }
+
+      prometheus.scrape "platform_pods" {
+        targets         = discovery.relabel.platform_metrics.output
+        job_name        = "platform-pods"
         scrape_interval = "30s"
         forward_to      = [prometheus.remote_write.default.receiver]
       }

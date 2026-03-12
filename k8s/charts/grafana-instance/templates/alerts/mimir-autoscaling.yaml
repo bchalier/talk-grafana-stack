@@ -1,0 +1,82 @@
+apiVersion: grafana.integreatly.org/v1beta1
+kind: GrafanaAlertRuleGroup
+metadata:
+  name: mimir-autoscaling
+spec:
+  allowCrossNamespaceImport: true
+  instanceSelector:
+    matchLabels:
+      grafana: primary
+  folderRef: mimir
+  interval: 1m
+  rules:
+  - uid: mimirautoscalernotactive
+    title: MimirAutoscalerNotActive
+    condition: A
+    execErrState: Error
+    noDataState: OK
+    data:
+    - refId: A
+      queryType: promql
+      relativeTimeRange:
+        from: 60
+      datasourceUid: mimir
+      model:
+        datasource:
+          type: prometheus
+          uid: mimir
+        expr: "(\n    label_replace((\n      kube_horizontalpodautoscaler_status_condition{condition=\"\
+          ScalingActive\",status=\"false\"}\n      # Match only Mimir namespaces.\n\
+          \      * on(cluster, namespace) group_left max by(cluster, namespace) (cortex_build_info)\n\
+          \      # Add \"metric\" label.\n      + on(cluster, namespace, horizontalpodautoscaler)\
+          \ group_right\n        # Using `max by ()` so that series churn doesn't\
+          \ break the promQL join\n        max by (cluster, namespace, horizontalpodautoscaler,\
+          \ metric) (\n          label_replace(kube_horizontalpodautoscaler_spec_target_metric*0,\
+          \ \"metric\", \"$1\", \"metric_name\", \"(.+)\")\n        )\n      > 0),\n\
+          \      \"scaledObject\", \"$1\", \"horizontalpodautoscaler\", \"keda-hpa-(?:mimir-)?(.*)\"\
+          \n    )\n)\n# Alert only if the scaling metric exists and is > 0. If the\
+          \ KEDA ScaledObject is configured to scale down 0,\n# then HPA ScalingActive\
+          \ may be false when expected to run 0 replicas. In this case, the scaling\
+          \ metric exported\n# by KEDA could not exist at all or being exposed with\
+          \ a value of 0.\nand on (cluster, namespace, metric, scaledObject) (\n \
+          \ max by (cluster, namespace, metric, scaledObject) (\n    label_replace(keda_scaler_metrics_value,\
+          \ \"namespace\", \"$0\", \"exported_namespace\", \".+\") > 0\n  )\n)\n"
+        interval: ''
+        legendFormat: ''
+        refId: A
+    for: 1h
+    labels:
+      severity: critical
+    annotations:
+      message: The Horizontal Pod Autoscaler (HPA) {{ "{{" }} $labels.horizontalpodautoscaler
+        }} in {{ "{{" }} $labels.namespace }} is not active.
+      runbook_url: https://grafana.com/docs/mimir/latest/operators-guide/mimir-runbooks/#mimirautoscalernotactive
+  - uid: mimirautoscalerkedafailing
+    title: MimirAutoscalerKedaFailing
+    condition: A
+    execErrState: Error
+    noDataState: OK
+    data:
+    - refId: A
+      queryType: promql
+      relativeTimeRange:
+        from: 60
+      datasourceUid: mimir
+      model:
+        datasource:
+          type: prometheus
+          uid: mimir
+        expr: "(\n    # Find KEDA scalers reporting errors.\n    label_replace(rate(keda_scaler_errors[5m]),\
+          \ \"namespace\", \"$1\", \"exported_namespace\", \"(.*)\")\n    # Match\
+          \ only Mimir namespaces.\n    * on(cluster, namespace) group_left max by(cluster,\
+          \ namespace) (cortex_build_info)\n)\n> 0\n"
+        interval: ''
+        legendFormat: ''
+        refId: A
+    for: 1h
+    labels:
+      severity: critical
+    annotations:
+      message: The Keda ScaledObject {{ "{{" }} $labels.scaledObject }} in {{ "{{"
+        }} $labels.namespace }} is experiencing errors.
+      runbook_url: https://grafana.com/docs/mimir/latest/operators-guide/mimir-runbooks/#mimirautoscalerkedafailing

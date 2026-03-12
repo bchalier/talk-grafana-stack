@@ -1,0 +1,533 @@
+apiVersion: grafana.integreatly.org/v1beta1
+kind: GrafanaAlertRuleGroup
+metadata:
+  name: mimir-blocks-alerts
+spec:
+  allowCrossNamespaceImport: true
+  instanceSelector:
+    matchLabels:
+      grafana: primary
+  folderRef: mimir
+  interval: 1m
+  rules:
+  - uid: mimiringesterhasnotshippedblocks
+    title: MimirIngesterHasNotShippedBlocks
+    condition: A
+    execErrState: Error
+    noDataState: OK
+    data:
+    - refId: A
+      queryType: promql
+      relativeTimeRange:
+        from: 60
+      datasourceUid: mimir
+      model:
+        datasource:
+          type: prometheus
+          uid: mimir
+        expr: '(min by(cluster, namespace, pod) (time() - cortex_ingester_shipper_last_successful_upload_timestamp_seconds)
+          > 60 * 60 * 4)
+
+          and
+
+          (max by(cluster, namespace, pod) (cortex_ingester_shipper_last_successful_upload_timestamp_seconds)
+          > 0)
+
+          and
+
+          # Only if the ingester has ingested samples over the last 4h.
+
+          (max by(cluster, namespace, pod) (max_over_time(cluster_namespace_pod:cortex_ingester_ingested_samples_total:rate1m[4h]))
+          > 0)
+
+          and
+
+          # Only if the ingester was ingesting samples 4h ago. This protects against
+          the case where the ingester replica
+
+          # had ingested samples in the past, then no traffic was received for a long
+          period and then it starts
+
+          # receiving samples again. Without this check, the alert would fire as soon
+          as it gets back receiving
+
+          # samples, while the a block shipping is expected within the next 4h.
+
+          (max by(cluster, namespace, pod) (max_over_time(cluster_namespace_pod:cortex_ingester_ingested_samples_total:rate1m[1h]
+          offset 4h)) > 0)
+
+          # And only if blocks aren''t shipped by the block-builder.
+
+          unless on (cluster, namespace)
+
+          (max by (cluster, namespace) (cortex_blockbuilder_tsdb_last_successful_compact_and_upload_timestamp_seconds)
+          > 0)
+
+          '
+        interval: ''
+        legendFormat: ''
+        refId: A
+    for: 15m
+    labels:
+      severity: critical
+    annotations:
+      message: Mimir Ingester {{ "{{" }} $labels.pod }} in {{ "{{" }} $labels.cluster
+        }}/{{ "{{" }} $labels.namespace }} has not shipped any block in the last 4
+        hours.
+      runbook_url: https://grafana.com/docs/mimir/latest/operators-guide/mimir-runbooks/#mimiringesterhasnotshippedblocks
+  - uid: mim-991203f3e64d0404933c435416a5fc889968
+    title: MimirIngesterHasNotShippedBlocksSinceStart
+    condition: A
+    execErrState: Error
+    noDataState: OK
+    data:
+    - refId: A
+      queryType: promql
+      relativeTimeRange:
+        from: 60
+      datasourceUid: mimir
+      model:
+        datasource:
+          type: prometheus
+          uid: mimir
+        expr: '(max by(cluster, namespace, pod) (cortex_ingester_shipper_last_successful_upload_timestamp_seconds)
+          == 0)
+
+          and
+
+          (max by(cluster, namespace, pod) (max_over_time(cluster_namespace_pod:cortex_ingester_ingested_samples_total:rate1m[4h]))
+          > 0)
+
+          # Only if blocks aren''t shipped by the block-builder.
+
+          unless on (cluster, namespace)
+
+          (max by (cluster, namespace) (cortex_blockbuilder_tsdb_last_successful_compact_and_upload_timestamp_seconds)
+          > 0)
+
+          '
+        interval: ''
+        legendFormat: ''
+        refId: A
+    for: 4h
+    labels:
+      severity: critical
+    annotations:
+      message: Mimir Ingester {{ "{{" }} $labels.pod }} in {{ "{{" }} $labels.cluster
+        }}/{{ "{{" }} $labels.namespace }} has not shipped any block in the last 4
+        hours.
+      runbook_url: https://grafana.com/docs/mimir/latest/operators-guide/mimir-runbooks/#mimiringesterhasnotshippedblockssincestart
+  - uid: mimiringesterhasunshippedblocks
+    title: MimirIngesterHasUnshippedBlocks
+    condition: A
+    execErrState: Error
+    noDataState: OK
+    data:
+    - refId: A
+      queryType: promql
+      relativeTimeRange:
+        from: 60
+      datasourceUid: mimir
+      model:
+        datasource:
+          type: prometheus
+          uid: mimir
+        expr: '(time() - cortex_ingester_oldest_unshipped_block_timestamp_seconds
+          > 3600)
+
+          and
+
+          (cortex_ingester_oldest_unshipped_block_timestamp_seconds > 0)
+
+          # Only if blocks aren''t shipped by the block-builder.
+
+          unless on (cluster, namespace)
+
+          (max by (cluster, namespace) (cortex_blockbuilder_tsdb_last_successful_compact_and_upload_timestamp_seconds)
+          > 0)
+
+          '
+        interval: ''
+        legendFormat: ''
+        refId: A
+    for: 15m
+    labels:
+      severity: critical
+    annotations:
+      message: Mimir Ingester {{ "{{" }} $labels.pod }} in {{ "{{" }} $labels.cluster
+        }}/{{ "{{" }} $labels.namespace }} has compacted a block {{ "{{" }} $value
+        | humanizeDuration }} ago but it hasn't been successfully uploaded to the
+        storage yet.
+      runbook_url: https://grafana.com/docs/mimir/latest/operators-guide/mimir-runbooks/#mimiringesterhasunshippedblocks
+  - uid: mimiringestertsdbheadcompactionfailed
+    title: MimirIngesterTSDBHeadCompactionFailed
+    condition: A
+    execErrState: Error
+    noDataState: OK
+    data:
+    - refId: A
+      queryType: promql
+      relativeTimeRange:
+        from: 60
+      datasourceUid: mimir
+      model:
+        datasource:
+          type: prometheus
+          uid: mimir
+        expr: 'rate(cortex_ingester_tsdb_compactions_failed_total[5m]) > 0
+
+          '
+        interval: ''
+        legendFormat: ''
+        refId: A
+    for: 15m
+    labels:
+      severity: critical
+    annotations:
+      message: Mimir Ingester {{ "{{" }} $labels.pod }} in {{ "{{" }} $labels.cluster
+        }}/{{ "{{" }} $labels.namespace }} is failing to compact TSDB head.
+      runbook_url: https://grafana.com/docs/mimir/latest/operators-guide/mimir-runbooks/#mimiringestertsdbheadcompactionfailed
+  - uid: mimiringestertsdbheadtruncationfailed
+    title: MimirIngesterTSDBHeadTruncationFailed
+    condition: A
+    execErrState: Error
+    noDataState: OK
+    data:
+    - refId: A
+      queryType: promql
+      relativeTimeRange:
+        from: 60
+      datasourceUid: mimir
+      model:
+        datasource:
+          type: prometheus
+          uid: mimir
+        expr: 'rate(cortex_ingester_tsdb_head_truncations_failed_total[5m]) > 0
+
+          '
+        interval: ''
+        legendFormat: ''
+        refId: A
+    for: 1m
+    labels:
+      severity: critical
+    annotations:
+      message: Mimir Ingester {{ "{{" }} $labels.pod }} in {{ "{{" }} $labels.cluster
+        }}/{{ "{{" }} $labels.namespace }} is failing to truncate TSDB head.
+      runbook_url: https://grafana.com/docs/mimir/latest/operators-guide/mimir-runbooks/#mimiringestertsdbheadtruncationfailed
+  - uid: mim-835d1949255d65f387b4d1212cd7a1b8d7f3
+    title: MimirIngesterTSDBCheckpointCreationFailed
+    condition: A
+    execErrState: Error
+    noDataState: OK
+    data:
+    - refId: A
+      queryType: promql
+      relativeTimeRange:
+        from: 60
+      datasourceUid: mimir
+      model:
+        datasource:
+          type: prometheus
+          uid: mimir
+        expr: 'rate(cortex_ingester_tsdb_checkpoint_creations_failed_total[5m]) >
+          0
+
+          '
+        interval: ''
+        legendFormat: ''
+        refId: A
+    for: 1m
+    labels:
+      severity: critical
+    annotations:
+      message: Mimir Ingester {{ "{{" }} $labels.pod }} in {{ "{{" }} $labels.cluster
+        }}/{{ "{{" }} $labels.namespace }} is failing to create TSDB checkpoint.
+      runbook_url: https://grafana.com/docs/mimir/latest/operators-guide/mimir-runbooks/#mimiringestertsdbcheckpointcreationfailed
+  - uid: mim-8dde590d3a9b1f397f3c0c85ce601e7d747e
+    title: MimirIngesterTSDBCheckpointDeletionFailed
+    condition: A
+    execErrState: Error
+    noDataState: OK
+    data:
+    - refId: A
+      queryType: promql
+      relativeTimeRange:
+        from: 60
+      datasourceUid: mimir
+      model:
+        datasource:
+          type: prometheus
+          uid: mimir
+        expr: 'rate(cortex_ingester_tsdb_checkpoint_deletions_failed_total[5m]) >
+          0
+
+          '
+        interval: ''
+        legendFormat: ''
+        refId: A
+    for: 1m
+    labels:
+      severity: critical
+    annotations:
+      message: Mimir Ingester {{ "{{" }} $labels.pod }} in {{ "{{" }} $labels.cluster
+        }}/{{ "{{" }} $labels.namespace }} is failing to delete TSDB checkpoint.
+      runbook_url: https://grafana.com/docs/mimir/latest/operators-guide/mimir-runbooks/#mimiringestertsdbcheckpointdeletionfailed
+  - uid: mimiringestertsdbwaltruncationfailed
+    title: MimirIngesterTSDBWALTruncationFailed
+    condition: A
+    execErrState: Error
+    noDataState: OK
+    data:
+    - refId: A
+      queryType: promql
+      relativeTimeRange:
+        from: 60
+      datasourceUid: mimir
+      model:
+        datasource:
+          type: prometheus
+          uid: mimir
+        expr: 'rate(cortex_ingester_tsdb_wal_truncations_failed_total[5m]) > 0
+
+          '
+        interval: ''
+        legendFormat: ''
+        refId: A
+    for: 1m
+    labels:
+      severity: warning
+    annotations:
+      message: Mimir Ingester {{ "{{" }} $labels.pod }} in {{ "{{" }} $labels.cluster
+        }}/{{ "{{" }} $labels.namespace }} is failing to truncate TSDB WAL.
+      runbook_url: https://grafana.com/docs/mimir/latest/operators-guide/mimir-runbooks/#mimiringestertsdbwaltruncationfailed
+  - uid: mimiringestertsdbwalcorrupted
+    title: MimirIngesterTSDBWALCorrupted
+    condition: A
+    execErrState: Error
+    noDataState: OK
+    data:
+    - refId: A
+      queryType: promql
+      relativeTimeRange:
+        from: 60
+      datasourceUid: mimir
+      model:
+        datasource:
+          type: prometheus
+          uid: mimir
+        expr: '# alert when there are more than one corruptions
+
+          count by (cluster, namespace) (rate(cortex_ingester_tsdb_wal_corruptions_total[5m])
+          > 0) > 1
+
+          and
+
+          # and there is only one zone
+
+          count by (cluster, namespace) (group by (cluster, namespace, job) (cortex_ingester_tsdb_wal_corruptions_total))
+          == 1
+
+          '
+        interval: ''
+        legendFormat: ''
+        refId: A
+    for: 1m
+    labels:
+      deployment: single-zone
+      severity: critical
+    annotations:
+      message: Mimir Ingester in {{ "{{" }} $labels.cluster }}/{{ "{{" }} $labels.namespace
+        }} got a corrupted TSDB WAL.
+      runbook_url: https://grafana.com/docs/mimir/latest/operators-guide/mimir-runbooks/#mimiringestertsdbwalcorrupted
+  - uid: mimiringestertsdbwalcorrupted
+    title: MimirIngesterTSDBWALCorrupted
+    condition: A
+    execErrState: Error
+    noDataState: OK
+    data:
+    - refId: A
+      queryType: promql
+      relativeTimeRange:
+        from: 60
+      datasourceUid: mimir
+      model:
+        datasource:
+          type: prometheus
+          uid: mimir
+        expr: '# alert when there are more than one corruptions
+
+          count by (cluster, namespace) (sum by (cluster, namespace, job) (rate(cortex_ingester_tsdb_wal_corruptions_total[5m])
+          > 0)) > 1
+
+          and
+
+          # and there are multiple zones
+
+          count by (cluster, namespace) (group by (cluster, namespace, job) (cortex_ingester_tsdb_wal_corruptions_total))
+          > 1
+
+          '
+        interval: ''
+        legendFormat: ''
+        refId: A
+    for: 1m
+    labels:
+      deployment: multi-zone
+      severity: critical
+    annotations:
+      message: Mimir Ingester in {{ "{{" }} $labels.cluster }}/{{ "{{" }} $labels.namespace
+        }} got a corrupted TSDB WAL.
+      runbook_url: https://grafana.com/docs/mimir/latest/operators-guide/mimir-runbooks/#mimiringestertsdbwalcorrupted
+  - uid: mimiringestertsdbwalwritesfailed
+    title: MimirIngesterTSDBWALWritesFailed
+    condition: A
+    execErrState: Error
+    noDataState: OK
+    data:
+    - refId: A
+      queryType: promql
+      relativeTimeRange:
+        from: 60
+      datasourceUid: mimir
+      model:
+        datasource:
+          type: prometheus
+          uid: mimir
+        expr: 'rate(cortex_ingester_tsdb_wal_writes_failed_total[1m]) > 0
+
+          '
+        interval: ''
+        legendFormat: ''
+        refId: A
+    for: 3m
+    labels:
+      severity: critical
+    annotations:
+      message: Mimir Ingester {{ "{{" }} $labels.pod }} in {{ "{{" }} $labels.cluster
+        }}/{{ "{{" }} $labels.namespace }} is failing to write to TSDB WAL.
+      runbook_url: https://grafana.com/docs/mimir/latest/operators-guide/mimir-runbooks/#mimiringestertsdbwalwritesfailed
+  - uid: mimirstoregatewayhasnotsyncthebucket
+    title: MimirStoreGatewayHasNotSyncTheBucket
+    condition: A
+    execErrState: Error
+    noDataState: OK
+    data:
+    - refId: A
+      queryType: promql
+      relativeTimeRange:
+        from: 60
+      datasourceUid: mimir
+      model:
+        datasource:
+          type: prometheus
+          uid: mimir
+        expr: '(time() - cortex_bucket_stores_blocks_last_successful_sync_timestamp_seconds{component="store-gateway"}
+          > 60 * 30)
+
+          and
+
+          cortex_bucket_stores_blocks_last_successful_sync_timestamp_seconds{component="store-gateway"}
+          > 0
+
+          '
+        interval: ''
+        legendFormat: ''
+        refId: A
+    for: 5m
+    labels:
+      severity: critical
+    annotations:
+      message: Mimir store-gateway {{ "{{" }} $labels.pod }} in {{ "{{" }} $labels.cluster
+        }}/{{ "{{" }} $labels.namespace }} has not successfully synched the bucket
+        since {{ "{{" }} $value | humanizeDuration }}.
+      runbook_url: https://grafana.com/docs/mimir/latest/operators-guide/mimir-runbooks/#mimirstoregatewayhasnotsyncthebucket
+  - uid: mimirstoregatewaynosyncedtenants
+    title: MimirStoreGatewayNoSyncedTenants
+    condition: A
+    execErrState: Error
+    noDataState: OK
+    data:
+    - refId: A
+      queryType: promql
+      relativeTimeRange:
+        from: 60
+      datasourceUid: mimir
+      model:
+        datasource:
+          type: prometheus
+          uid: mimir
+        expr: 'min by(cluster, namespace, pod) (cortex_bucket_stores_tenants_synced{component="store-gateway"})
+          == 0
+
+          '
+        interval: ''
+        legendFormat: ''
+        refId: A
+    for: 1h
+    labels:
+      severity: warning
+    annotations:
+      message: Mimir store-gateway {{ "{{" }} $labels.pod }} in {{ "{{" }} $labels.cluster
+        }}/{{ "{{" }} $labels.namespace }} is not syncing any blocks for any tenant.
+      runbook_url: https://grafana.com/docs/mimir/latest/operators-guide/mimir-runbooks/#mimirstoregatewaynosyncedtenants
+  - uid: mimirbucketindexnotupdated
+    title: MimirBucketIndexNotUpdated
+    condition: A
+    execErrState: Error
+    noDataState: OK
+    data:
+    - refId: A
+      queryType: promql
+      relativeTimeRange:
+        from: 60
+      datasourceUid: mimir
+      model:
+        datasource:
+          type: prometheus
+          uid: mimir
+        expr: 'min by(cluster, namespace, user) (time() - (max_over_time(cortex_bucket_index_last_successful_update_timestamp_seconds[15m])))
+          > 2100
+
+          '
+        interval: ''
+        legendFormat: ''
+        refId: A
+    for: 1m
+    labels:
+      severity: critical
+    annotations:
+      message: Mimir bucket index for tenant {{ "{{" }} $labels.user }} in {{ "{{"
+        }} $labels.cluster }}/{{ "{{" }} $labels.namespace }} has not been updated
+        since {{ "{{" }} $value | humanizeDuration }}.
+      runbook_url: https://grafana.com/docs/mimir/latest/operators-guide/mimir-runbooks/#mimirbucketindexnotupdated
+  - uid: mimirhighvolumelevel1blocksqueried
+    title: MimirHighVolumeLevel1BlocksQueried
+    condition: A
+    execErrState: Error
+    noDataState: OK
+    data:
+    - refId: A
+      queryType: promql
+      relativeTimeRange:
+        from: 60
+      datasourceUid: mimir
+      model:
+        datasource:
+          type: prometheus
+          uid: mimir
+        expr: 'sum by(cluster, namespace) (rate(cortex_bucket_store_series_blocks_queried_sum{component="store-gateway",level="1",out_of_order="false",job=~".*/(store-gateway.*|cortex|mimir)"}[5m]))
+          > 0
+
+          '
+        interval: ''
+        legendFormat: ''
+        refId: A
+    for: 6h
+    labels:
+      severity: warning
+    annotations:
+      message: Mimir store-gateway in {{ "{{" }} $labels.cluster }}/{{ "{{" }} $labels.namespace
+        }} is querying level 1 blocks, indicating the compactor may not be keeping
+        up with compaction.
+      runbook_url: https://grafana.com/docs/mimir/latest/operators-guide/mimir-runbooks/#mimirhighvolumelevel1blocksqueried

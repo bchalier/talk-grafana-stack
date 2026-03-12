@@ -1,0 +1,189 @@
+apiVersion: grafana.integreatly.org/v1beta1
+kind: GrafanaAlertRuleGroup
+metadata:
+  name: loki-alerts
+spec:
+  allowCrossNamespaceImport: true
+  instanceSelector:
+    matchLabels:
+      grafana: primary
+  folderRef: loki
+  interval: 1m
+  rules:
+  - uid: lokirequesterrors
+    title: LokiRequestErrors
+    condition: A
+    execErrState: Error
+    noDataState: OK
+    data:
+    - refId: A
+      queryType: promql
+      relativeTimeRange:
+        from: 60
+      datasourceUid: mimir
+      model:
+        datasource:
+          type: prometheus
+          uid: mimir
+        expr: "100 * sum(rate(loki_request_duration_seconds_count{status_code=~\"\
+          5..\"}[2m])) by (cluster, namespace, job, route)\n  /\nsum(rate(loki_request_duration_seconds_count[2m]))\
+          \ by (cluster, namespace, job, route)\n  > 10\n"
+        interval: ''
+        legendFormat: ''
+        refId: A
+    for: 15m
+    labels:
+      severity: critical
+    annotations:
+      description: '{{ "{{" }} $labels.cluster }} {{ "{{" }} $labels.job }} {{ "{{"
+        }} $labels.route }} is experiencing {{ "{{" }} printf "%.2f" $value }}% errors.'
+      summary: Loki request error rate is high.
+  - uid: lokirequestpanics
+    title: LokiRequestPanics
+    condition: A
+    execErrState: Error
+    noDataState: OK
+    data:
+    - refId: A
+      queryType: promql
+      relativeTimeRange:
+        from: 60
+      datasourceUid: mimir
+      model:
+        datasource:
+          type: prometheus
+          uid: mimir
+        expr: 'sum(increase(loki_panic_total[10m])) by (cluster, namespace, job) >
+          0
+
+          '
+        interval: ''
+        legendFormat: ''
+        refId: A
+    for: 1m
+    labels:
+      severity: critical
+    annotations:
+      description: '{{ "{{" }} $labels.cluster }} {{ "{{" }} $labels.job }} is experiencing
+        {{ "{{" }} printf "%.2f" $value }}% increase of panics.'
+      summary: Loki requests are causing code panics.
+  - uid: lokirequestlatency
+    title: LokiRequestLatency
+    condition: A
+    execErrState: Error
+    noDataState: OK
+    data:
+    - refId: A
+      queryType: promql
+      relativeTimeRange:
+        from: 60
+      datasourceUid: mimir
+      model:
+        datasource:
+          type: prometheus
+          uid: mimir
+        expr: 'cluster_namespace_job_route:loki_request_duration_seconds:99quantile{route!~"(?i).*tail.*|/schedulerpb.SchedulerForQuerier/QuerierLoop"}
+          > 1
+
+          '
+        interval: ''
+        legendFormat: ''
+        refId: A
+    for: 15m
+    labels:
+      severity: critical
+    annotations:
+      description: '{{ "{{" }} $labels.cluster }} {{ "{{" }} $labels.job }} {{ "{{"
+        }} $labels.route }} is experiencing {{ "{{" }} printf "%.2f" $value }}s 99th
+        percentile latency.'
+      summary: Loki request error latency is high.
+  - uid: lokitoomanycompactorsrunning
+    title: LokiTooManyCompactorsRunning
+    condition: A
+    execErrState: Error
+    noDataState: OK
+    data:
+    - refId: A
+      queryType: promql
+      relativeTimeRange:
+        from: 60
+      datasourceUid: mimir
+      model:
+        datasource:
+          type: prometheus
+          uid: mimir
+        expr: 'sum(loki_boltdb_shipper_compactor_running) by (cluster, namespace)
+          > 1
+
+          '
+        interval: ''
+        legendFormat: ''
+        refId: A
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      description: '{{ "{{" }} $labels.cluster }} {{ "{{" }} $labels.namespace }}
+        has had {{ "{{" }} printf "%.0f" $value }} compactors running for more than
+        5m. Only one compactor should run at a time.'
+      summary: Loki deployment is running more than one compactor.
+  - uid: lok-7a55d26276662d59ee17b5f5be7fcc4f353a
+    title: LokiCompactorHasNotSuccessfullyRunCompaction
+    condition: A
+    execErrState: Error
+    noDataState: OK
+    data:
+    - refId: A
+      queryType: promql
+      relativeTimeRange:
+        from: 60
+      datasourceUid: mimir
+      model:
+        datasource:
+          type: prometheus
+          uid: mimir
+        expr: "# The \"last successful run\" metric is updated even if the compactor\
+          \ owns no tenants,\n# so this alert correctly doesn't fire if compactor\
+          \ has nothing to do.\nmin (\n  time() - (loki_boltdb_shipper_compact_tables_operation_last_successful_run_timestamp_seconds{}\
+          \ > 0)\n)\nby (cluster, namespace)\n> 60 * 60 * 3\n"
+        interval: ''
+        legendFormat: ''
+        refId: A
+    for: 1h
+    labels:
+      severity: critical
+    annotations:
+      description: '{{ "{{" }} $labels.cluster }} {{ "{{" }} $labels.namespace }}
+        has not run compaction in the last 3 hours since the last compaction. This
+        may indicate a problem with the compactor.'
+      summary: Loki compaction has not run in the last 3 hours since the last compaction.
+  - uid: lok-7a55d26276662d59ee17b5f5be7fcc4f353a
+    title: LokiCompactorHasNotSuccessfullyRunCompaction
+    condition: A
+    execErrState: Error
+    noDataState: OK
+    data:
+    - refId: A
+      queryType: promql
+      relativeTimeRange:
+        from: 60
+      datasourceUid: mimir
+      model:
+        datasource:
+          type: prometheus
+          uid: mimir
+        expr: "# The \"last successful run\" metric is updated even if the compactor\
+          \ owns no tenants,\n# so this alert correctly doesn't fire if compactor\
+          \ has nothing to do.\nmax(\n  max_over_time(\n    loki_boltdb_shipper_compact_tables_operation_last_successful_run_timestamp_seconds{}[3h]\n\
+          \  )\n) by (cluster, namespace)\n== 0\n"
+        interval: ''
+        legendFormat: ''
+        refId: A
+    for: 1h
+    labels:
+      severity: critical
+    annotations:
+      description: '{{ "{{" }} $labels.cluster }} {{ "{{" }} $labels.namespace }}
+        has not run compaction in the last 3h since startup. This may indicate a problem
+        with the compactor.'
+      summary: Loki compaction has not run in the last 3h since startup.

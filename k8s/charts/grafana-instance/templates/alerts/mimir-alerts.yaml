@@ -1,0 +1,612 @@
+apiVersion: grafana.integreatly.org/v1beta1
+kind: GrafanaAlertRuleGroup
+metadata:
+  name: mimir-alerts
+spec:
+  allowCrossNamespaceImport: true
+  instanceSelector:
+    matchLabels:
+      grafana: primary
+  folderRef: mimir
+  interval: 1m
+  rules:
+  - uid: mimiringesterunhealthy
+    title: MimirIngesterUnhealthy
+    condition: A
+    execErrState: Error
+    noDataState: OK
+    data:
+    - refId: A
+      queryType: promql
+      relativeTimeRange:
+        from: 60
+      datasourceUid: mimir
+      model:
+        datasource:
+          type: prometheus
+          uid: mimir
+        expr: 'min by (cluster, namespace) (cortex_ring_members{state="Unhealthy",
+          name="ingester"}) > 0
+
+          '
+        interval: ''
+        legendFormat: ''
+        refId: A
+    for: 15m
+    labels:
+      severity: critical
+    annotations:
+      message: Mimir cluster {{ "{{" }} $labels.cluster }}/{{ "{{" }} $labels.namespace
+        }} has {{ "{{" }} printf "%f" $value }} unhealthy ingester(s).
+      runbook_url: https://grafana.com/docs/mimir/latest/operators-guide/mimir-runbooks/#mimiringesterunhealthy
+  - uid: mimirrequesterrors
+    title: MimirRequestErrors
+    condition: A
+    execErrState: Error
+    noDataState: OK
+    data:
+    - refId: A
+      queryType: promql
+      relativeTimeRange:
+        from: 60
+      datasourceUid: mimir
+      model:
+        datasource:
+          type: prometheus
+          uid: mimir
+        expr: "# The following 5xx errors considered as non-error:\n# - 529: used\
+          \ by distributor rate limiting (using 529 instead of 429 to let the client\
+          \ retry)\n# - 598: used by GEM gateway when the client is very slow to send\
+          \ the request and the gateway times out reading the request body\n(\n  sum\
+          \ by (cluster, namespace, job, route) (rate(cortex_request_duration_seconds_count{status_code=~\"\
+          5..\", status_code!~\"529|598\", route!~\"ready|debug_pprof\"}[1m]))\n \
+          \ /\n  sum by (cluster, namespace, job, route) (rate(cortex_request_duration_seconds_count{route!~\"\
+          ready|debug_pprof\"}[1m]))\n) * 100 > 1\n"
+        interval: ''
+        legendFormat: ''
+        refId: A
+    for: 15m
+    labels:
+      histogram: classic
+      severity: critical
+    annotations:
+      message: The route {{ "{{" }} $labels.route }} in {{ "{{" }} $labels.cluster
+        }}/{{ "{{" }} $labels.namespace }} is experiencing {{ "{{" }} printf "%.2f"
+        $value }}% errors.
+      runbook_url: https://grafana.com/docs/mimir/latest/operators-guide/mimir-runbooks/#mimirrequesterrors
+  - uid: mimirrequesterrors
+    title: MimirRequestErrors
+    condition: A
+    execErrState: Error
+    noDataState: OK
+    data:
+    - refId: A
+      queryType: promql
+      relativeTimeRange:
+        from: 60
+      datasourceUid: mimir
+      model:
+        datasource:
+          type: prometheus
+          uid: mimir
+        expr: "# The following 5xx errors considered as non-error:\n# - 529: used\
+          \ by distributor rate limiting (using 529 instead of 429 to let the client\
+          \ retry)\n# - 598: used by GEM gateway when the client is very slow to send\
+          \ the request and the gateway times out reading the request body\n(\n  sum\
+          \ by (cluster, namespace, job, route) (histogram_count(rate(cortex_request_duration_seconds{status_code=~\"\
+          5..\", status_code!~\"529|598\", route!~\"ready|debug_pprof\"}[1m])))\n\
+          \  /\n  sum by (cluster, namespace, job, route) (histogram_count(rate(cortex_request_duration_seconds{route!~\"\
+          ready|debug_pprof\"}[1m])))\n) * 100 > 1\n"
+        interval: ''
+        legendFormat: ''
+        refId: A
+    for: 15m
+    labels:
+      histogram: native
+      severity: critical
+    annotations:
+      message: The route {{ "{{" }} $labels.route }} in {{ "{{" }} $labels.cluster
+        }}/{{ "{{" }} $labels.namespace }} is experiencing {{ "{{" }} printf "%.2f"
+        $value }}% errors.
+      runbook_url: https://grafana.com/docs/mimir/latest/operators-guide/mimir-runbooks/#mimirrequesterrors
+  - uid: mimirrequestlatency
+    title: MimirRequestLatency
+    condition: A
+    execErrState: Error
+    noDataState: OK
+    data:
+    - refId: A
+      queryType: promql
+      relativeTimeRange:
+        from: 60
+      datasourceUid: mimir
+      model:
+        datasource:
+          type: prometheus
+          uid: mimir
+        expr: "cluster_namespace_job_route:cortex_request_duration_seconds:99quantile{route!~\"\
+          metrics|/frontend.Frontend/Process|ready|/schedulerpb.SchedulerForFrontend/FrontendLoop|/schedulerpb.SchedulerForQuerier/QuerierLoop|debug_pprof\"\
+          }\n   >\n2.5\n"
+        interval: ''
+        legendFormat: ''
+        refId: A
+    for: 15m
+    labels:
+      severity: warning
+    annotations:
+      message: '{{ "{{" }} $labels.job }} {{ "{{" }} $labels.route }} is experiencing
+        {{ "{{" }} printf "%.2f" $value }}s 99th percentile latency.'
+      runbook_url: https://grafana.com/docs/mimir/latest/operators-guide/mimir-runbooks/#mimirrequestlatency
+  - uid: mimirinconsistentruntimeconfig
+    title: MimirInconsistentRuntimeConfig
+    condition: A
+    execErrState: Error
+    noDataState: OK
+    data:
+    - refId: A
+      queryType: promql
+      relativeTimeRange:
+        from: 60
+      datasourceUid: mimir
+      model:
+        datasource:
+          type: prometheus
+          uid: mimir
+        expr: 'count(count by(cluster, namespace, job, sha256) (cortex_runtime_config_hash))
+          without(sha256) > 1
+
+          '
+        interval: ''
+        legendFormat: ''
+        refId: A
+    for: 1h
+    labels:
+      severity: critical
+    annotations:
+      message: An inconsistent runtime config file is used across cluster {{ "{{"
+        }} $labels.cluster }}/{{ "{{" }} $labels.namespace }}.
+      runbook_url: https://grafana.com/docs/mimir/latest/operators-guide/mimir-runbooks/#mimirinconsistentruntimeconfig
+  - uid: mimirbadruntimeconfig
+    title: MimirBadRuntimeConfig
+    condition: A
+    execErrState: Error
+    noDataState: OK
+    data:
+    - refId: A
+      queryType: promql
+      relativeTimeRange:
+        from: 60
+      datasourceUid: mimir
+      model:
+        datasource:
+          type: prometheus
+          uid: mimir
+        expr: '# The metric value is reset to 0 on error while reloading the config
+          at runtime.
+
+          cortex_runtime_config_last_reload_successful == 0
+
+          '
+        interval: ''
+        legendFormat: ''
+        refId: A
+    for: 5m
+    labels:
+      severity: critical
+    annotations:
+      message: '{{ "{{" }} $labels.job }} failed to reload runtime config.'
+      runbook_url: https://grafana.com/docs/mimir/latest/operators-guide/mimir-runbooks/#mimirbadruntimeconfig
+  - uid: mimirfrontendqueriesstuck
+    title: MimirFrontendQueriesStuck
+    condition: A
+    execErrState: Error
+    noDataState: OK
+    data:
+    - refId: A
+      queryType: promql
+      relativeTimeRange:
+        from: 60
+      datasourceUid: mimir
+      model:
+        datasource:
+          type: prometheus
+          uid: mimir
+        expr: 'sum by (cluster, namespace, job) (min_over_time(cortex_query_frontend_queue_length[1m]))
+          > 0
+
+          '
+        interval: ''
+        legendFormat: ''
+        refId: A
+    for: 5m
+    labels:
+      severity: critical
+    annotations:
+      message: There are {{ "{{" }} $value }} queued up queries in {{ "{{" }} $labels.cluster
+        }}/{{ "{{" }} $labels.namespace }} {{ "{{" }} $labels.job }}.
+      runbook_url: https://grafana.com/docs/mimir/latest/operators-guide/mimir-runbooks/#mimirfrontendqueriesstuck
+  - uid: mimirschedulerqueriesstuck
+    title: MimirSchedulerQueriesStuck
+    condition: A
+    execErrState: Error
+    noDataState: OK
+    data:
+    - refId: A
+      queryType: promql
+      relativeTimeRange:
+        from: 60
+      datasourceUid: mimir
+      model:
+        datasource:
+          type: prometheus
+          uid: mimir
+        expr: 'sum by (cluster, namespace, job) (min_over_time(cortex_query_scheduler_queue_length[1m]))
+          > 0
+
+          '
+        interval: ''
+        legendFormat: ''
+        refId: A
+    for: 7m
+    labels:
+      severity: critical
+    annotations:
+      message: There are {{ "{{" }} $value }} queued up queries in {{ "{{" }} $labels.cluster
+        }}/{{ "{{" }} $labels.namespace }} {{ "{{" }} $labels.job }}.
+      runbook_url: https://grafana.com/docs/mimir/latest/operators-guide/mimir-runbooks/#mimirschedulerqueriesstuck
+  - uid: mimircacherequesterrors
+    title: MimirCacheRequestErrors
+    condition: A
+    execErrState: Error
+    noDataState: OK
+    data:
+    - refId: A
+      queryType: promql
+      relativeTimeRange:
+        from: 60
+      datasourceUid: mimir
+      model:
+        datasource:
+          type: prometheus
+          uid: mimir
+        expr: "(\n  sum by(cluster, namespace, name, operation) (\n    rate(thanos_cache_operation_failures_total{operation!~\"\
+          add|delete\"}[1m])\n  )\n  /\n  sum by(cluster, namespace, name, operation)\
+          \ (\n    rate(thanos_cache_operations_total{operation!~\"add|delete\"}[1m])\n\
+          \  ) > 10\n) * 100 > 5\n"
+        interval: ''
+        legendFormat: ''
+        refId: A
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      message: The cache {{ "{{" }} $labels.name }} used by Mimir {{ "{{" }} $labels.cluster
+        }}/{{ "{{" }} $labels.namespace }} is experiencing {{ "{{" }} printf "%.2f"
+        $value }}% errors for {{ "{{" }} $labels.operation }} operation.
+      runbook_url: https://grafana.com/docs/mimir/latest/operators-guide/mimir-runbooks/#mimircacherequesterrors
+  - uid: mimiringesterrestarts
+    title: MimirIngesterRestarts
+    condition: A
+    execErrState: Error
+    noDataState: OK
+    data:
+    - refId: A
+      queryType: promql
+      relativeTimeRange:
+        from: 60
+      datasourceUid: mimir
+      model:
+        datasource:
+          type: prometheus
+          uid: mimir
+        expr: "(\n  sum by(cluster, namespace, pod) (\n    increase(kube_pod_container_status_restarts_total{container=~\"\
+          (ingester)\"}[30m])\n  )\n  >= 2\n)\nand\n(\n  count by(cluster, namespace,\
+          \ pod) (cortex_build_info) > 0\n)\n"
+        interval: ''
+        legendFormat: ''
+        refId: A
+    for: 1m
+    labels:
+      severity: warning
+    annotations:
+      message: Mimir {{ "{{" }} $labels.pod }} in {{ "{{" }} $labels.cluster }}/{{
+        "{{" }} $labels.namespace }} has restarted {{ "{{" }} printf "%.2f" $value
+        }} times in the last 30 mins.
+      runbook_url: https://grafana.com/docs/mimir/latest/operators-guide/mimir-runbooks/#mimiringesterrestarts
+  - uid: mimirkvstorefailure
+    title: MimirKVStoreFailure
+    condition: A
+    execErrState: Error
+    noDataState: OK
+    data:
+    - refId: A
+      queryType: promql
+      relativeTimeRange:
+        from: 60
+      datasourceUid: mimir
+      model:
+        datasource:
+          type: prometheus
+          uid: mimir
+        expr: "(\n  sum by(cluster, namespace, pod, status_code, kv_name) (rate(cortex_kv_request_duration_seconds_count{status_code!~\"\
+          2.+\"}[1m]))\n  /\n  sum by(cluster, namespace, pod, status_code, kv_name)\
+          \ (rate(cortex_kv_request_duration_seconds_count[1m]))\n)\n# We want to\
+          \ get alerted only in case there's a constant failure.\n== 1\n"
+        interval: ''
+        legendFormat: ''
+        refId: A
+    for: 5m
+    labels:
+      severity: critical
+    annotations:
+      message: Mimir {{ "{{" }} $labels.pod }} in  {{ "{{" }} $labels.cluster }}/{{
+        "{{" }} $labels.namespace }} is failing to talk to the KV store {{ "{{" }}
+        $labels.kv_name }}.
+      runbook_url: https://grafana.com/docs/mimir/latest/operators-guide/mimir-runbooks/#mimirkvstorefailure
+  - uid: mimirmemorymapareastoohigh
+    title: MimirMemoryMapAreasTooHigh
+    condition: A
+    execErrState: Error
+    noDataState: OK
+    data:
+    - refId: A
+      queryType: promql
+      relativeTimeRange:
+        from: 60
+      datasourceUid: mimir
+      model:
+        datasource:
+          type: prometheus
+          uid: mimir
+        expr: 'process_memory_map_areas{job=~".*/(ingester.*|cortex|mimir|store-gateway.*|cortex|mimir)"}
+          / process_memory_map_areas_limit{job=~".*/(ingester.*|cortex|mimir|store-gateway.*|cortex|mimir)"}
+          > 0.8
+
+          '
+        interval: ''
+        legendFormat: ''
+        refId: A
+    for: 5m
+    labels:
+      severity: critical
+    annotations:
+      message: '{{ "{{" }} $labels.job }}/{{ "{{" }} $labels.pod }} has a number of
+        mmap-ed areas close to the limit.'
+      runbook_url: https://grafana.com/docs/mimir/latest/operators-guide/mimir-runbooks/#mimirmemorymapareastoohigh
+  - uid: mimiringesterinstancehasnotenants
+    title: MimirIngesterInstanceHasNoTenants
+    condition: A
+    execErrState: Error
+    noDataState: OK
+    data:
+    - refId: A
+      queryType: promql
+      relativeTimeRange:
+        from: 60
+      datasourceUid: mimir
+      model:
+        datasource:
+          type: prometheus
+          uid: mimir
+        expr: "(\n  (min by(cluster, namespace, pod) (cortex_ingester_memory_users)\
+          \ == 0)\n  unless\n  (max by(cluster, namespace, pod) (cortex_lifecycler_read_only)\
+          \ > 0)\n)\nand on (cluster, namespace)\n# Only if there are more timeseries\
+          \ than would be expected due to continuous testing load\n(\n  ( # Classic\
+          \ storage timeseries\n    sum by(cluster, namespace) (cortex_ingester_memory_series)\n\
+          \    /\n    max by(cluster, namespace) (cortex_distributor_replication_factor)\n\
+          \  )\n  or\n  ( # Ingest storage timeseries\n    sum by(cluster, namespace)\
+          \ (\n      max by(ingester_id, cluster, namespace) (\n        label_replace(cortex_ingester_memory_series,\n\
+          \          \"ingester_id\", \"$1\",\n          \"pod\", \".*-([0-9]+)$\"\
+          \n        )\n      )\n    )\n  )\n) > 100000\n"
+        interval: ''
+        legendFormat: ''
+        refId: A
+    for: 1h
+    labels:
+      severity: warning
+    annotations:
+      message: Mimir ingester {{ "{{" }} $labels.pod }} in {{ "{{" }} $labels.cluster
+        }}/{{ "{{" }} $labels.namespace }} has no tenants assigned.
+      runbook_url: https://grafana.com/docs/mimir/latest/operators-guide/mimir-runbooks/#mimiringesterinstancehasnotenants
+  - uid: mimirrulerinstancehasnorulegroups
+    title: MimirRulerInstanceHasNoRuleGroups
+    condition: A
+    execErrState: Error
+    noDataState: OK
+    data:
+    - refId: A
+      queryType: promql
+      relativeTimeRange:
+        from: 60
+      datasourceUid: mimir
+      model:
+        datasource:
+          type: prometheus
+          uid: mimir
+        expr: '# Alert on ruler instances in microservices mode that have no rule
+          groups assigned,
+
+          min by(cluster, namespace, pod) (cortex_ruler_managers_total{pod=~"(.*mimir-)?ruler.*"})
+          == 0
+
+          # but only if other ruler instances of the same cell do have rule groups
+          assigned
+
+          and on (cluster, namespace)
+
+          (max by(cluster, namespace) (cortex_ruler_managers_total) > 0)
+
+          # and there are more than two instances overall
+
+          and on (cluster, namespace)
+
+          (count by (cluster, namespace) (cortex_ruler_managers_total) > 2)
+
+          '
+        interval: ''
+        legendFormat: ''
+        refId: A
+    for: 1h
+    labels:
+      severity: warning
+    annotations:
+      message: Mimir ruler {{ "{{" }} $labels.pod }} in {{ "{{" }} $labels.cluster
+        }}/{{ "{{" }} $labels.namespace }} has no rule groups assigned.
+      runbook_url: https://grafana.com/docs/mimir/latest/operators-guide/mimir-runbooks/#mimirrulerinstancehasnorulegroups
+  - uid: mimiringesteddatatoofarinthefuture
+    title: MimirIngestedDataTooFarInTheFuture
+    condition: A
+    execErrState: Error
+    noDataState: OK
+    data:
+    - refId: A
+      queryType: promql
+      relativeTimeRange:
+        from: 60
+      datasourceUid: mimir
+      model:
+        datasource:
+          type: prometheus
+          uid: mimir
+        expr: "max by(cluster, namespace, pod) (\n    cortex_ingester_tsdb_head_max_timestamp_seconds\
+          \ - time()\n    and\n    cortex_ingester_tsdb_head_max_timestamp_seconds\
+          \ > 0\n) > 60*60\n"
+        interval: ''
+        legendFormat: ''
+        refId: A
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      message: Mimir ingester {{ "{{" }} $labels.pod }} in {{ "{{" }} $labels.cluster
+        }}/{{ "{{" }} $labels.namespace }} has ingested samples with timestamps more
+        than 1h in the future.
+      runbook_url: https://grafana.com/docs/mimir/latest/operators-guide/mimir-runbooks/#mimiringesteddatatoofarinthefuture
+  - uid: mimirstoregatewaytoomanyfailedoperations
+    title: MimirStoreGatewayTooManyFailedOperations
+    condition: A
+    execErrState: Error
+    noDataState: OK
+    data:
+    - refId: A
+      queryType: promql
+      relativeTimeRange:
+        from: 60
+      datasourceUid: mimir
+      model:
+        datasource:
+          type: prometheus
+          uid: mimir
+        expr: 'sum by(cluster, namespace, operation) (rate(thanos_objstore_bucket_operation_failures_total{component="store-gateway"}[1m]))
+          > 0
+
+          '
+        interval: ''
+        legendFormat: ''
+        refId: A
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      message: Mimir store-gateway in {{ "{{" }} $labels.cluster }}/{{ "{{" }} $labels.namespace
+        }} is experiencing {{ "{{" }} $value | humanizePercentage }} errors while
+        doing {{ "{{" }} $labels.operation }} on the object storage.
+      runbook_url: https://grafana.com/docs/mimir/latest/operators-guide/mimir-runbooks/#mimirstoregatewaytoomanyfailedoperations
+  - uid: mim-80da47cf3106ff7e0f35d88bfbfe4317cd93
+    title: MimirServerInvalidClusterValidationLabelRequests
+    condition: A
+    execErrState: Error
+    noDataState: OK
+    data:
+    - refId: A
+      queryType: promql
+      relativeTimeRange:
+        from: 60
+      datasourceUid: mimir
+      model:
+        datasource:
+          type: prometheus
+          uid: mimir
+        expr: '(sum by (cluster, namespace, protocol) (rate(cortex_server_invalid_cluster_validation_label_requests_total{}[5m])))
+          > 0
+
+          # Alert only for namespaces with Mimir clusters.
+
+          and on (cluster, namespace) (mimir_build_info > 0)
+
+          '
+        interval: ''
+        legendFormat: ''
+        refId: A
+    for: 1m
+    labels:
+      severity: warning
+    annotations:
+      message: Mimir servers in {{ "{{" }} $labels.cluster }}/{{ "{{" }} $labels.namespace
+        }} are receiving requests with invalid cluster validation labels.
+      runbook_url: https://grafana.com/docs/mimir/latest/operators-guide/mimir-runbooks/#mimirserverinvalidclustervalidationlabelrequests
+  - uid: mim-d0c2922777385c7aa1b862e9a1e8a019359a
+    title: MimirClientInvalidClusterValidationLabelRequests
+    condition: A
+    execErrState: Error
+    noDataState: OK
+    data:
+    - refId: A
+      queryType: promql
+      relativeTimeRange:
+        from: 60
+      datasourceUid: mimir
+      model:
+        datasource:
+          type: prometheus
+          uid: mimir
+        expr: '(sum by (cluster, namespace, protocol) (rate(cortex_client_invalid_cluster_validation_label_requests_total{}[5m])))
+          > 0
+
+          # Alert only for namespaces with Mimir clusters.
+
+          and on (cluster, namespace) (mimir_build_info > 0)
+
+          '
+        interval: ''
+        legendFormat: ''
+        refId: A
+    for: 1m
+    labels:
+      severity: warning
+    annotations:
+      message: Mimir clients in {{ "{{" }} $labels.cluster }}/{{ "{{" }} $labels.namespace
+        }} are having requests rejected due to invalid cluster validation labels.
+      runbook_url: https://grafana.com/docs/mimir/latest/operators-guide/mimir-runbooks/#mimirclientinvalidclustervalidationlabelrequests
+  - uid: mimirringmembersmismatch
+    title: MimirRingMembersMismatch
+    condition: A
+    execErrState: Error
+    noDataState: OK
+    data:
+    - refId: A
+      queryType: promql
+      relativeTimeRange:
+        from: 60
+      datasourceUid: mimir
+      model:
+        datasource:
+          type: prometheus
+          uid: mimir
+        expr: "(\n  avg by(cluster, namespace) (sum by(cluster, namespace, pod) (avg\
+          \ by(state) (cortex_ring_members{name=\"ingester\",job=~\".*/(ingester.*|cortex|mimir)\"\
+          ,job!~\".*/(ingester.*-partition)\"})))\n  != sum by(cluster, namespace)\
+          \ (up{job=~\".*/(ingester.*|cortex|mimir)\",job!~\".*/(ingester.*-partition)\"\
+          })\n)\nand\n(\n  count by(cluster, namespace) (cortex_build_info) > 0\n\
+          )\n"
+        interval: ''
+        legendFormat: ''
+        refId: A
+    for: 15m
+    labels:
+      component: ingester
+      severity: warning
+    annotations:
+      message: Number of members in Mimir ingester hash ring does not match the expected
+        number in {{ "{{" }} $labels.cluster }}/{{ "{{" }} $labels.namespace }}.
+      runbook_url: https://grafana.com/docs/mimir/latest/operators-guide/mimir-runbooks/#mimirringmembersmismatch

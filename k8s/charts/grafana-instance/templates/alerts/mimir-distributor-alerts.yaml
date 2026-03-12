@@ -1,0 +1,44 @@
+apiVersion: grafana.integreatly.org/v1beta1
+kind: GrafanaAlertRuleGroup
+metadata:
+  name: mimir-distributor-alerts
+spec:
+  allowCrossNamespaceImport: true
+  instanceSelector:
+    matchLabels:
+      grafana: primary
+  folderRef: mimir
+  interval: 1m
+  rules:
+  - uid: mimirdistributorgcusestoomuchcpu
+    title: MimirDistributorGcUsesTooMuchCpu
+    condition: A
+    execErrState: Error
+    noDataState: OK
+    data:
+    - refId: A
+      queryType: promql
+      relativeTimeRange:
+        from: 60
+      datasourceUid: mimir
+      model:
+        datasource:
+          type: prometheus
+          uid: mimir
+        expr: "(quantile by (cluster, namespace) (0.9, sum by (cluster, namespace,\
+          \ pod) (rate(go_cpu_classes_gc_total_cpu_seconds_total{container=\"distributor\"\
+          }[5m]))\n  /\n  (\n    sum by (cluster, namespace, pod) (rate(go_cpu_classes_total_cpu_seconds_total{container=\"\
+          distributor\"}[5m]))\n    -\n    sum by (cluster, namespace, pod) (rate(go_cpu_classes_idle_cpu_seconds_total{container=\"\
+          distributor\"}[5m]))\n  )\n) * 100) > 10\n\n# Alert only for namespaces\
+          \ with Mimir clusters.\nand (count by (cluster, namespace) (mimir_build_info)\
+          \ > 0)\n"
+        interval: ''
+        legendFormat: ''
+        refId: A
+    for: 10m
+    labels:
+      severity: warning
+    annotations:
+      message: Mimir distributors in {{ "{{" }} $labels.cluster }}/{{ "{{" }} $labels.namespace
+        }} GC CPU utilization is too high.
+      runbook_url: https://grafana.com/docs/mimir/latest/operators-guide/mimir-runbooks/#mimirdistributorgcusestoomuchcpu

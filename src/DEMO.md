@@ -1,5 +1,5 @@
 - tout va bien, montrer les dashboards et alertes
-- mettre une app en chaosSlowDb, l'autre chaosError
+- basculer sur l'app correspondant au souci: healthy, slow-db, error, db-failure
 - incident
 - alerte initiale via mail
 - investigation via metrics

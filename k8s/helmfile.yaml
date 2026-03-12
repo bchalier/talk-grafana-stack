@@ -75,19 +75,33 @@ releases:
     values:
       - values/alloy.yaml
 
-  - name: app-1
+  - name: app-healthy
     namespace: app
     chart: ./charts/app
     version: 0.1.0
     values:
-      - values/app-1.yaml
+      - values/app-healthy.yaml
 
-  - name: app-2
+  - name: app-slow-db
     namespace: app
     chart: ./charts/app
     version: 0.1.0
     values:
-      - values/app-2.yaml
+      - values/app-slow-db.yaml
+
+  - name: app-error
+    namespace: app
+    chart: ./charts/app
+    version: 0.1.0
+    values:
+      - values/app-error.yaml
+
+  - name: app-db-failure
+    namespace: app
+    chart: ./charts/app
+    version: 0.1.0
+    values:
+      - values/app-db-failure.yaml
 
   - name: k6-load
     namespace: app

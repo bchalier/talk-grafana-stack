@@ -1,0 +1,66 @@
+apiVersion: grafana.integreatly.org/v1beta1
+kind: GrafanaAlertRuleGroup
+metadata:
+  name: etcd-alerts
+spec:
+  allowCrossNamespaceImport: true
+  instanceSelector:
+    matchLabels:
+      grafana: primary
+  folderRef: mimir
+  interval: 1m
+  rules:
+  - uid: etcdallocatingtoomuchmemory
+    title: EtcdAllocatingTooMuchMemory
+    condition: A
+    execErrState: Error
+    noDataState: OK
+    data:
+    - refId: A
+      queryType: promql
+      relativeTimeRange:
+        from: 60
+      datasourceUid: mimir
+      model:
+        datasource:
+          type: prometheus
+          uid: mimir
+        expr: "(\n  container_memory_rss{container=\"etcd\"}\n    /\n  ( container_spec_memory_limit_bytes{container=\"\
+          etcd\"} > 0 )\n) > 0.65\n"
+        interval: ''
+        legendFormat: ''
+        refId: A
+    for: 15m
+    labels:
+      severity: warning
+    annotations:
+      message: Too much memory being used by {{ "{{" }} $labels.namespace }}/{{ "{{"
+        }} $labels.pod }} - bump memory limit.
+      runbook_url: https://grafana.com/docs/mimir/latest/operators-guide/mimir-runbooks/#etcdallocatingtoomuchmemory
+  - uid: etcdallocatingtoomuchmemory
+    title: EtcdAllocatingTooMuchMemory
+    condition: A
+    execErrState: Error
+    noDataState: OK
+    data:
+    - refId: A
+      queryType: promql
+      relativeTimeRange:
+        from: 60
+      datasourceUid: mimir
+      model:
+        datasource:
+          type: prometheus
+          uid: mimir
+        expr: "(\n  container_memory_rss{container=\"etcd\"}\n    /\n  ( container_spec_memory_limit_bytes{container=\"\
+          etcd\"} > 0 )\n) > 0.8\n"
+        interval: ''
+        legendFormat: ''
+        refId: A
+    for: 15m
+    labels:
+      severity: critical
+    annotations:
+      message: Too much memory being used by {{ "{{" }} $labels.namespace }}/{{ "{{"
+        }} $labels.pod }} - bump memory limit.
+      runbook_url: https://grafana.com/docs/mimir/latest/operators-guide/mimir-runbooks/#etcdallocatingtoomuchmemory

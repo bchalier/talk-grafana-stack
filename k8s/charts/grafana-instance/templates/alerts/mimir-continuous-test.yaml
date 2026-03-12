@@ -1,0 +1,101 @@
+apiVersion: grafana.integreatly.org/v1beta1
+kind: GrafanaAlertRuleGroup
+metadata:
+  name: mimir-continuous-test
+spec:
+  allowCrossNamespaceImport: true
+  instanceSelector:
+    matchLabels:
+      grafana: primary
+  folderRef: mimir
+  interval: 1m
+  rules:
+  - uid: mimircontinuoustestnotrunningonwrites
+    title: MimirContinuousTestNotRunningOnWrites
+    condition: A
+    execErrState: Error
+    noDataState: OK
+    data:
+    - refId: A
+      queryType: promql
+      relativeTimeRange:
+        from: 60
+      datasourceUid: mimir
+      model:
+        datasource:
+          type: prometheus
+          uid: mimir
+        expr: 'sum by(cluster, namespace, test) (rate(mimir_continuous_test_writes_failed_total[5m]))
+          > 0
+
+          '
+        interval: ''
+        legendFormat: ''
+        refId: A
+    for: 1h
+    labels:
+      severity: warning
+    annotations:
+      message: Mimir continuous test {{ "{{" }} $labels.test }} in {{ "{{" }} $labels.cluster
+        }}/{{ "{{" }} $labels.namespace }} is not effectively running because writes
+        are failing.
+      runbook_url: https://grafana.com/docs/mimir/latest/operators-guide/mimir-runbooks/#mimircontinuoustestnotrunningonwrites
+  - uid: mimircontinuoustestnotrunningonreads
+    title: MimirContinuousTestNotRunningOnReads
+    condition: A
+    execErrState: Error
+    noDataState: OK
+    data:
+    - refId: A
+      queryType: promql
+      relativeTimeRange:
+        from: 60
+      datasourceUid: mimir
+      model:
+        datasource:
+          type: prometheus
+          uid: mimir
+        expr: 'sum by(cluster, namespace, test) (rate(mimir_continuous_test_queries_failed_total[5m]))
+          > 0
+
+          '
+        interval: ''
+        legendFormat: ''
+        refId: A
+    for: 1h
+    labels:
+      severity: warning
+    annotations:
+      message: Mimir continuous test {{ "{{" }} $labels.test }} in {{ "{{" }} $labels.cluster
+        }}/{{ "{{" }} $labels.namespace }} is not effectively running because queries
+        are failing.
+      runbook_url: https://grafana.com/docs/mimir/latest/operators-guide/mimir-runbooks/#mimircontinuoustestnotrunningonreads
+  - uid: mimircontinuoustestfailed
+    title: MimirContinuousTestFailed
+    condition: A
+    execErrState: Error
+    noDataState: OK
+    data:
+    - refId: A
+      queryType: promql
+      relativeTimeRange:
+        from: 60
+      datasourceUid: mimir
+      model:
+        datasource:
+          type: prometheus
+          uid: mimir
+        expr: 'sum by(cluster, namespace, test) (rate(mimir_continuous_test_query_result_checks_failed_total[10m]))
+          > 0
+
+          '
+        interval: ''
+        legendFormat: ''
+        refId: A
+    for: 1m
+    labels:
+      severity: warning
+    annotations:
+      message: Mimir continuous test {{ "{{" }} $labels.test }} in {{ "{{" }} $labels.cluster
+        }}/{{ "{{" }} $labels.namespace }} failed when asserting query results.
+      runbook_url: https://grafana.com/docs/mimir/latest/operators-guide/mimir-runbooks/#mimircontinuoustestfailed

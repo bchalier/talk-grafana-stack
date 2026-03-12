@@ -1,0 +1,72 @@
+apiVersion: grafana.integreatly.org/v1beta1
+kind: GrafanaAlertRuleGroup
+metadata:
+  name: mimir-provisioning
+spec:
+  allowCrossNamespaceImport: true
+  instanceSelector:
+    matchLabels:
+      grafana: primary
+  folderRef: mimir
+  interval: 1m
+  rules:
+  - uid: mimirallocatingtoomuchmemory
+    title: MimirAllocatingTooMuchMemory
+    condition: A
+    execErrState: Error
+    noDataState: OK
+    data:
+    - refId: A
+      queryType: promql
+      relativeTimeRange:
+        from: 60
+      datasourceUid: mimir
+      model:
+        datasource:
+          type: prometheus
+          uid: mimir
+        expr: "(\n  # We use RSS instead of working set memory because of the ingester's\
+          \ extensive usage of mmap.\n  # See: https://github.com/grafana/mimir/issues/2466\n\
+          \  container_memory_rss{container=~\"(ingester)\"}\n    /\n  ( container_spec_memory_limit_bytes{container=~\"\
+          (ingester)\"} > 0 )\n)\n# Match only Mimir namespaces.\n* on(cluster, namespace)\
+          \ group_left max by(cluster, namespace) (cortex_build_info)\n> 0.65\n"
+        interval: ''
+        legendFormat: ''
+        refId: A
+    for: 15m
+    labels:
+      severity: warning
+    annotations:
+      message: Instance {{ "{{" }} $labels.pod }} in {{ "{{" }} $labels.cluster }}/{{
+        "{{" }} $labels.namespace }} is using too much memory.
+      runbook_url: https://grafana.com/docs/mimir/latest/operators-guide/mimir-runbooks/#mimirallocatingtoomuchmemory
+  - uid: mimirallocatingtoomuchmemory
+    title: MimirAllocatingTooMuchMemory
+    condition: A
+    execErrState: Error
+    noDataState: OK
+    data:
+    - refId: A
+      queryType: promql
+      relativeTimeRange:
+        from: 60
+      datasourceUid: mimir
+      model:
+        datasource:
+          type: prometheus
+          uid: mimir
+        expr: "(\n  # We use RSS instead of working set memory because of the ingester's\
+          \ extensive usage of mmap.\n  # See: https://github.com/grafana/mimir/issues/2466\n\
+          \  container_memory_rss{container=~\"(ingester)\"}\n    /\n  ( container_spec_memory_limit_bytes{container=~\"\
+          (ingester)\"} > 0 )\n)\n# Match only Mimir namespaces.\n* on(cluster, namespace)\
+          \ group_left max by(cluster, namespace) (cortex_build_info)\n> 0.8\n"
+        interval: ''
+        legendFormat: ''
+        refId: A
+    for: 15m
+    labels:
+      severity: critical
+    annotations:
+      message: Instance {{ "{{" }} $labels.pod }} in {{ "{{" }} $labels.cluster }}/{{
+        "{{" }} $labels.namespace }} is using too much memory.
+      runbook_url: https://grafana.com/docs/mimir/latest/operators-guide/mimir-runbooks/#mimirallocatingtoomuchmemory

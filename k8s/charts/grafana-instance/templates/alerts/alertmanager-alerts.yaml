@@ -1,0 +1,285 @@
+apiVersion: grafana.integreatly.org/v1beta1
+kind: GrafanaAlertRuleGroup
+metadata:
+  name: alertmanager-alerts
+spec:
+  allowCrossNamespaceImport: true
+  instanceSelector:
+    matchLabels:
+      grafana: primary
+  folderRef: mimir
+  interval: 1m
+  rules:
+  - uid: mimiralertmanagersyncconfigsfailing
+    title: MimirAlertmanagerSyncConfigsFailing
+    condition: A
+    execErrState: Error
+    noDataState: OK
+    data:
+    - refId: A
+      queryType: promql
+      relativeTimeRange:
+        from: 60
+      datasourceUid: mimir
+      model:
+        datasource:
+          type: prometheus
+          uid: mimir
+        expr: 'rate(cortex_alertmanager_sync_configs_failed_total[5m]) > 0
+
+          '
+        interval: ''
+        legendFormat: ''
+        refId: A
+    for: 30m
+    labels:
+      severity: critical
+    annotations:
+      message: Mimir Alertmanager {{ "{{" }} $labels.job }}/{{ "{{" }} $labels.pod
+        }} is failing to read tenant configurations from storage.
+      runbook_url: https://grafana.com/docs/mimir/latest/operators-guide/mimir-runbooks/#mimiralertmanagersyncconfigsfailing
+  - uid: mimiralertmanagerringcheckfailing
+    title: MimirAlertmanagerRingCheckFailing
+    condition: A
+    execErrState: Error
+    noDataState: OK
+    data:
+    - refId: A
+      queryType: promql
+      relativeTimeRange:
+        from: 60
+      datasourceUid: mimir
+      model:
+        datasource:
+          type: prometheus
+          uid: mimir
+        expr: 'rate(cortex_alertmanager_ring_check_errors_total[2m]) > 0
+
+          '
+        interval: ''
+        legendFormat: ''
+        refId: A
+    for: 10m
+    labels:
+      severity: critical
+    annotations:
+      message: Mimir Alertmanager {{ "{{" }} $labels.job }}/{{ "{{" }} $labels.pod
+        }} is unable to check tenants ownership via the ring.
+      runbook_url: https://grafana.com/docs/mimir/latest/operators-guide/mimir-runbooks/#mimiralertmanagerringcheckfailing
+  - uid: mim-818291fd2e85d195d6f1a77d6c611604c221
+    title: MimirAlertmanagerPartialStateMergeFailing
+    condition: A
+    execErrState: Error
+    noDataState: OK
+    data:
+    - refId: A
+      queryType: promql
+      relativeTimeRange:
+        from: 60
+      datasourceUid: mimir
+      model:
+        datasource:
+          type: prometheus
+          uid: mimir
+        expr: 'rate(cortex_alertmanager_partial_state_merges_failed_total[2m]) > 0
+
+          '
+        interval: ''
+        legendFormat: ''
+        refId: A
+    for: 10m
+    labels:
+      severity: critical
+    annotations:
+      message: Mimir Alertmanager {{ "{{" }} $labels.job }}/{{ "{{" }} $labels.pod
+        }} is failing to merge partial state changes received from a replica.
+      runbook_url: https://grafana.com/docs/mimir/latest/operators-guide/mimir-runbooks/#mimiralertmanagerpartialstatemergefailing
+  - uid: mimiralertmanagerreplicationfailing
+    title: MimirAlertmanagerReplicationFailing
+    condition: A
+    execErrState: Error
+    noDataState: OK
+    data:
+    - refId: A
+      queryType: promql
+      relativeTimeRange:
+        from: 60
+      datasourceUid: mimir
+      model:
+        datasource:
+          type: prometheus
+          uid: mimir
+        expr: 'rate(cortex_alertmanager_state_replication_failed_total[2m]) > 0
+
+          '
+        interval: ''
+        legendFormat: ''
+        refId: A
+    for: 10m
+    labels:
+      severity: critical
+    annotations:
+      message: Mimir Alertmanager {{ "{{" }} $labels.job }}/{{ "{{" }} $labels.pod
+        }} is failing to replicating partial state to its replicas.
+      runbook_url: https://grafana.com/docs/mimir/latest/operators-guide/mimir-runbooks/#mimiralertmanagerreplicationfailing
+  - uid: mimiralertmanagerpersiststatefailing
+    title: MimirAlertmanagerPersistStateFailing
+    condition: A
+    execErrState: Error
+    noDataState: OK
+    data:
+    - refId: A
+      queryType: promql
+      relativeTimeRange:
+        from: 60
+      datasourceUid: mimir
+      model:
+        datasource:
+          type: prometheus
+          uid: mimir
+        expr: 'rate(cortex_alertmanager_state_persist_failed_total[15m]) > 0
+
+          '
+        interval: ''
+        legendFormat: ''
+        refId: A
+    for: 1h
+    labels:
+      severity: critical
+    annotations:
+      message: Mimir Alertmanager {{ "{{" }} $labels.job }}/{{ "{{" }} $labels.pod
+        }} is unable to persist full state snaphots to remote storage.
+      runbook_url: https://grafana.com/docs/mimir/latest/operators-guide/mimir-runbooks/#mimiralertmanagerpersiststatefailing
+  - uid: mimiralertmanagerinitialsyncfailed
+    title: MimirAlertmanagerInitialSyncFailed
+    condition: A
+    execErrState: Error
+    noDataState: OK
+    data:
+    - refId: A
+      queryType: promql
+      relativeTimeRange:
+        from: 60
+      datasourceUid: mimir
+      model:
+        datasource:
+          type: prometheus
+          uid: mimir
+        expr: 'increase(cortex_alertmanager_state_initial_sync_completed_total{outcome="failed"}[1m])
+          > 0
+
+          '
+        interval: ''
+        legendFormat: ''
+        refId: A
+    for: 1m
+    labels:
+      severity: critical
+    annotations:
+      message: Mimir Alertmanager {{ "{{" }} $labels.job }}/{{ "{{" }} $labels.pod
+        }} was unable to obtain some initial state when starting up.
+      runbook_url: https://grafana.com/docs/mimir/latest/operators-guide/mimir-runbooks/#mimiralertmanagerinitialsyncfailed
+  - uid: mimiralertmanagerallocatingtoomuchmemory
+    title: MimirAlertmanagerAllocatingTooMuchMemory
+    condition: A
+    execErrState: Error
+    noDataState: OK
+    data:
+    - refId: A
+      queryType: promql
+      relativeTimeRange:
+        from: 60
+      datasourceUid: mimir
+      model:
+        datasource:
+          type: prometheus
+          uid: mimir
+        expr: '(container_memory_working_set_bytes{container="alertmanager"} / container_spec_memory_limit_bytes{container="alertmanager"})
+          > 0.80
+
+          and
+
+          (container_spec_memory_limit_bytes{container="alertmanager"} > 0)
+
+          '
+        interval: ''
+        legendFormat: ''
+        refId: A
+    for: 15m
+    labels:
+      severity: warning
+    annotations:
+      message: Alertmanager {{ "{{" }} $labels.pod }} in {{ "{{" }} $labels.cluster
+        }}/{{ "{{" }} $labels.namespace }} is using too much memory.
+      runbook_url: https://grafana.com/docs/mimir/latest/operators-guide/mimir-runbooks/#mimiralertmanagerallocatingtoomuchmemory
+  - uid: mimiralertmanagerallocatingtoomuchmemory
+    title: MimirAlertmanagerAllocatingTooMuchMemory
+    condition: A
+    execErrState: Error
+    noDataState: OK
+    data:
+    - refId: A
+      queryType: promql
+      relativeTimeRange:
+        from: 60
+      datasourceUid: mimir
+      model:
+        datasource:
+          type: prometheus
+          uid: mimir
+        expr: '(container_memory_working_set_bytes{container="alertmanager"} / container_spec_memory_limit_bytes{container="alertmanager"})
+          > 0.90
+
+          and
+
+          (container_spec_memory_limit_bytes{container="alertmanager"} > 0)
+
+          '
+        interval: ''
+        legendFormat: ''
+        refId: A
+    for: 15m
+    labels:
+      severity: critical
+    annotations:
+      message: Alertmanager {{ "{{" }} $labels.pod }} in {{ "{{" }} $labels.cluster
+        }}/{{ "{{" }} $labels.namespace }} is using too much memory.
+      runbook_url: https://grafana.com/docs/mimir/latest/operators-guide/mimir-runbooks/#mimiralertmanagerallocatingtoomuchmemory
+  - uid: mimiralertmanagerinstancehasnotenants
+    title: MimirAlertmanagerInstanceHasNoTenants
+    condition: A
+    execErrState: Error
+    noDataState: OK
+    data:
+    - refId: A
+      queryType: promql
+      relativeTimeRange:
+        from: 60
+      datasourceUid: mimir
+      model:
+        datasource:
+          type: prometheus
+          uid: mimir
+        expr: '# Alert on alertmanager instances in microservices mode that own no
+          tenants,
+
+          min by(cluster, namespace, pod) (cortex_alertmanager_tenants_owned{pod=~"(.*mimir-)?alertmanager.*"})
+          == 0
+
+          # but only if other instances of the same cell do have tenants assigned.
+
+          and on (cluster, namespace)
+
+          max by(cluster, namespace) (cortex_alertmanager_tenants_owned) > 0
+
+          '
+        interval: ''
+        legendFormat: ''
+        refId: A
+    for: 1h
+    labels:
+      severity: warning
+    annotations:
+      message: Mimir alertmanager {{ "{{" }} $labels.pod }} in {{ "{{" }} $labels.cluster
+        }}/{{ "{{" }} $labels.namespace }} owns no tenants.
+      runbook_url: https://grafana.com/docs/mimir/latest/operators-guide/mimir-runbooks/#mimiralertmanagerinstancehasnotenants

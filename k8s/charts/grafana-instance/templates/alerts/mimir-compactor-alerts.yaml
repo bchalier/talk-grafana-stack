@@ -1,0 +1,349 @@
+apiVersion: grafana.integreatly.org/v1beta1
+kind: GrafanaAlertRuleGroup
+metadata:
+  name: mimir-compactor-alerts
+spec:
+  allowCrossNamespaceImport: true
+  instanceSelector:
+    matchLabels:
+      grafana: primary
+  folderRef: mimir
+  interval: 1m
+  rules:
+  - uid: mim-178b60ee97e00c2da1edb0c15aa43bcd684b
+    title: MimirCompactorHasNotSuccessfullyCleanedUpBlocks
+    condition: A
+    execErrState: Error
+    noDataState: OK
+    data:
+    - refId: A
+      queryType: promql
+      relativeTimeRange:
+        from: 60
+      datasourceUid: mimir
+      model:
+        datasource:
+          type: prometheus
+          uid: mimir
+        expr: '# The "last successful run" metric is updated even if the compactor
+          owns no tenants,
+
+          # so this alert correctly doesn''t fire if compactor has nothing to do.
+
+          (time() - cortex_compactor_block_cleanup_last_successful_run_timestamp_seconds
+          > 60 * 60 * 6)
+
+          '
+        interval: ''
+        legendFormat: ''
+        refId: A
+    for: 1h
+    labels:
+      severity: critical
+    annotations:
+      message: Mimir Compactor {{ "{{" }} $labels.pod }} in {{ "{{" }} $labels.cluster
+        }}/{{ "{{" }} $labels.namespace }} has not successfully cleaned up blocks
+        in the last 6 hours.
+      runbook_url: https://grafana.com/docs/mimir/latest/operators-guide/mimir-runbooks/#mimircompactorhasnotsuccessfullycleanedupblocks
+  - uid: mim-bd19f38a707a93fb9c1453033a553bfafa31
+    title: MimirCompactorHasNotSuccessfullyRunCompaction
+    condition: A
+    execErrState: Error
+    noDataState: OK
+    data:
+    - refId: A
+      queryType: promql
+      relativeTimeRange:
+        from: 60
+      datasourceUid: mimir
+      model:
+        datasource:
+          type: prometheus
+          uid: mimir
+        expr: '# The "last successful run" metric is updated even if the compactor
+          owns no tenants,
+
+          # so this alert correctly doesn''t fire if compactor has nothing to do.
+
+          (time() - cortex_compactor_last_successful_run_timestamp_seconds > 60 *
+          60 * 24)
+
+          and
+
+          (cortex_compactor_last_successful_run_timestamp_seconds > 0)
+
+          '
+        interval: ''
+        legendFormat: ''
+        refId: A
+    for: 1h
+    labels:
+      reason: in-last-24h
+      severity: critical
+    annotations:
+      message: Mimir Compactor {{ "{{" }} $labels.pod }} in {{ "{{" }} $labels.cluster
+        }}/{{ "{{" }} $labels.namespace }} has not run compaction in the last 24 hours.
+      runbook_url: https://grafana.com/docs/mimir/latest/operators-guide/mimir-runbooks/#mimircompactorhasnotsuccessfullyruncompaction
+  - uid: mim-bd19f38a707a93fb9c1453033a553bfafa31
+    title: MimirCompactorHasNotSuccessfullyRunCompaction
+    condition: A
+    execErrState: Error
+    noDataState: OK
+    data:
+    - refId: A
+      queryType: promql
+      relativeTimeRange:
+        from: 60
+      datasourceUid: mimir
+      model:
+        datasource:
+          type: prometheus
+          uid: mimir
+        expr: '# The "last successful run" metric is updated even if the compactor
+          owns no tenants,
+
+          # so this alert correctly doesn''t fire if compactor has nothing to do.
+
+          cortex_compactor_last_successful_run_timestamp_seconds == 0
+
+          '
+        interval: ''
+        legendFormat: ''
+        refId: A
+    for: 24h
+    labels:
+      reason: since-startup
+      severity: critical
+    annotations:
+      message: Mimir Compactor {{ "{{" }} $labels.pod }} in {{ "{{" }} $labels.cluster
+        }}/{{ "{{" }} $labels.namespace }} has not run compaction in the last 24 hours.
+      runbook_url: https://grafana.com/docs/mimir/latest/operators-guide/mimir-runbooks/#mimircompactorhasnotsuccessfullyruncompaction
+  - uid: mim-bd19f38a707a93fb9c1453033a553bfafa31
+    title: MimirCompactorHasNotSuccessfullyRunCompaction
+    condition: A
+    execErrState: Error
+    noDataState: OK
+    data:
+    - refId: A
+      queryType: promql
+      relativeTimeRange:
+        from: 60
+      datasourceUid: mimir
+      model:
+        datasource:
+          type: prometheus
+          uid: mimir
+        expr: 'increase(cortex_compactor_runs_failed_total{reason!="shutdown"}[2h])
+          >= 2
+
+          '
+        interval: ''
+        legendFormat: ''
+        refId: A
+    for: 1m
+    labels:
+      reason: consecutive-failures
+      severity: critical
+    annotations:
+      message: Mimir Compactor {{ "{{" }} $labels.pod }} in {{ "{{" }} $labels.cluster
+        }}/{{ "{{" }} $labels.namespace }} failed to run 2 consecutive compactions.
+      runbook_url: https://grafana.com/docs/mimir/latest/operators-guide/mimir-runbooks/#mimircompactorhasnotsuccessfullyruncompaction
+  - uid: mimircompactorhasrunoutofdiskspace
+    title: MimirCompactorHasRunOutOfDiskSpace
+    condition: A
+    execErrState: Error
+    noDataState: OK
+    data:
+    - refId: A
+      queryType: promql
+      relativeTimeRange:
+        from: 60
+      datasourceUid: mimir
+      model:
+        datasource:
+          type: prometheus
+          uid: mimir
+        expr: 'increase(cortex_compactor_disk_out_of_space_errors_total{}[24h]) >=
+          1
+
+          '
+        interval: ''
+        legendFormat: ''
+        refId: A
+    for: 1m
+    labels:
+      reason: non-transient
+      severity: critical
+    annotations:
+      message: Mimir Compactor {{ "{{" }} $labels.pod }} in {{ "{{" }} $labels.cluster
+        }}/{{ "{{" }} $labels.namespace }} has run out of disk space.
+      runbook_url: https://grafana.com/docs/mimir/latest/operators-guide/mimir-runbooks/#mimircompactorhasrunoutofdiskspace
+  - uid: mimircompactorhasnotuploadedblocks
+    title: MimirCompactorHasNotUploadedBlocks
+    condition: A
+    execErrState: Error
+    noDataState: OK
+    data:
+    - refId: A
+      queryType: promql
+      relativeTimeRange:
+        from: 60
+      datasourceUid: mimir
+      model:
+        datasource:
+          type: prometheus
+          uid: mimir
+        expr: '(time() - (max by(cluster, namespace, pod) (thanos_objstore_bucket_last_successful_upload_time{component="compactor"}))
+          > 60 * 60 * 24)
+
+          and
+
+          (max by(cluster, namespace, pod) (thanos_objstore_bucket_last_successful_upload_time{component="compactor"})
+          > 0)
+
+          and
+
+          # Only if some compactions have started. We don''t want to fire this alert
+          if the compactor has nothing to do.
+
+          (sum by(cluster, namespace, pod) (rate(cortex_compactor_group_compaction_runs_started_total[24h]))
+          > 0)
+
+          '
+        interval: ''
+        legendFormat: ''
+        refId: A
+    for: 15m
+    labels:
+      severity: critical
+      time_period: 24h
+    annotations:
+      message: Mimir Compactor {{ "{{" }} $labels.pod }} in {{ "{{" }} $labels.cluster
+        }}/{{ "{{" }} $labels.namespace }} has not uploaded any block in the last
+        24 hours.
+      runbook_url: https://grafana.com/docs/mimir/latest/operators-guide/mimir-runbooks/#mimircompactorhasnotuploadedblocks
+  - uid: mimircompactorhasnotuploadedblocks
+    title: MimirCompactorHasNotUploadedBlocks
+    condition: A
+    execErrState: Error
+    noDataState: OK
+    data:
+    - refId: A
+      queryType: promql
+      relativeTimeRange:
+        from: 60
+      datasourceUid: mimir
+      model:
+        datasource:
+          type: prometheus
+          uid: mimir
+        expr: '(max by(cluster, namespace, pod) (thanos_objstore_bucket_last_successful_upload_time{component="compactor"})
+          == 0)
+
+          and
+
+          # Only if some compactions have started. We don''t want to fire this alert
+          if the compactor has nothing to do.
+
+          (sum by(cluster, namespace, pod) (rate(cortex_compactor_group_compaction_runs_started_total[24h]))
+          > 0)
+
+          '
+        interval: ''
+        legendFormat: ''
+        refId: A
+    for: 24h
+    labels:
+      severity: critical
+      time_period: since-start
+    annotations:
+      message: Mimir Compactor {{ "{{" }} $labels.pod }} in {{ "{{" }} $labels.cluster
+        }}/{{ "{{" }} $labels.namespace }} has not uploaded any block since its start.
+      runbook_url: https://grafana.com/docs/mimir/latest/operators-guide/mimir-runbooks/#mimircompactorhasnotuploadedblocks
+  - uid: mimircompactorskippedunhealthyblocks
+    title: MimirCompactorSkippedUnhealthyBlocks
+    condition: A
+    execErrState: Error
+    noDataState: OK
+    data:
+    - refId: A
+      queryType: promql
+      relativeTimeRange:
+        from: 60
+      datasourceUid: mimir
+      model:
+        datasource:
+          type: prometheus
+          uid: mimir
+        expr: 'increase(cortex_compactor_blocks_marked_for_no_compaction_total[5m])
+          > 0
+
+          '
+        interval: ''
+        legendFormat: ''
+        refId: A
+    for: 1m
+    labels:
+      severity: warning
+    annotations:
+      message: Mimir Compactor {{ "{{" }} $labels.pod }} in {{ "{{" }} $labels.cluster
+        }}/{{ "{{" }} $labels.namespace }} has found and ignored unhealthy blocks.
+      runbook_url: https://grafana.com/docs/mimir/latest/operators-guide/mimir-runbooks/#mimircompactorskippedunhealthyblocks
+  - uid: mimircompactorskippedunhealthyblocks
+    title: MimirCompactorSkippedUnhealthyBlocks
+    condition: A
+    execErrState: Error
+    noDataState: OK
+    data:
+    - refId: A
+      queryType: promql
+      relativeTimeRange:
+        from: 60
+      datasourceUid: mimir
+      model:
+        datasource:
+          type: prometheus
+          uid: mimir
+        expr: 'increase(cortex_compactor_blocks_marked_for_no_compaction_total[5m])
+          > 1
+
+          '
+        interval: ''
+        legendFormat: ''
+        refId: A
+    for: 30m
+    labels:
+      severity: critical
+    annotations:
+      message: Mimir Compactor {{ "{{" }} $labels.pod }} in {{ "{{" }} $labels.cluster
+        }}/{{ "{{" }} $labels.namespace }} has found and ignored unhealthy blocks.
+      runbook_url: https://grafana.com/docs/mimir/latest/operators-guide/mimir-runbooks/#mimircompactorskippedunhealthyblocks
+  - uid: mim-5e5d9164e02c83583f084180d9af031ca21c
+    title: MimirCompactorFailingToBuildSparseIndexHeaders
+    condition: A
+    execErrState: Error
+    noDataState: OK
+    data:
+    - refId: A
+      queryType: promql
+      relativeTimeRange:
+        from: 60
+      datasourceUid: mimir
+      model:
+        datasource:
+          type: prometheus
+          uid: mimir
+        expr: '(sum by(cluster, namespace, pod) (increase(cortex_compactor_build_sparse_headers_failures_total[5m]))
+          > 0)
+
+          '
+        interval: ''
+        legendFormat: ''
+        refId: A
+    for: 30m
+    labels:
+      severity: warning
+    annotations:
+      message: Mimir Compactor {{ "{{" }} $labels.pod }} in {{ "{{" }} $labels.cluster
+        }}/{{ "{{" }} $labels.namespace }} is failing to build sparse index headers
+      runbook_url: https://grafana.com/docs/mimir/latest/operators-guide/mimir-runbooks/#mimircompactorfailingtobuildsparseindexheaders

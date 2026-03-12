@@ -1,4 +1,4 @@
 env:
   chaosSlowDb: "false"
   chaosError: "false"
-  chaosDbFailure: "false"
+  chaosDbFailure: "true"

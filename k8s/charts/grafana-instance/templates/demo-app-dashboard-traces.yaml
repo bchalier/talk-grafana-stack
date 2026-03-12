@@ -25,6 +25,26 @@ spec:
       "schemaVersion": 36,
       "version": 1,
       "time": { "from": "now-30m", "to": "now" },
+      "templating": {
+        "list": [
+          {
+            "name": "application",
+            "label": "App",
+            "type": "query",
+            "datasource": { "type": "prometheus", "uid": {{ .Values.demoAppObservability.prometheusDatasource | quote }} },
+            "query": {
+              "query": "label_values(http_requests_total, application)",
+              "refId": "GrafanaVariableQueryEditor-VariableQuery"
+            },
+            "definition": "label_values(http_requests_total, application)",
+            "refresh": 1,
+            "includeAll": false,
+            "multi": false,
+            "sort": 1,
+            "current": {}
+          }
+        ]
+      },
       "panels": [
         {
           "id": 1,
@@ -34,7 +54,7 @@ spec:
           "targets": [
             {
               "queryType": "traceql",
-              "query": "{}",
+              "query": "{ resource.service.name = \"$application\" }",
               "refId": "A"
             }
           ],
@@ -51,7 +71,7 @@ spec:
           "targets": [
             {
               "queryType": "traceql",
-              "query": "{ duration>1s }",
+              "query": "{ resource.service.name = \"$application\" && duration > 1s }",
               "refId": "A"
             }
           ],

@@ -1,0 +1,86 @@
+apiVersion: grafana.integreatly.org/v1beta1
+kind: GrafanaAlertRuleGroup
+metadata:
+  name: golang-alerts
+spec:
+  allowCrossNamespaceImport: true
+  instanceSelector:
+    matchLabels:
+      grafana: primary
+  folderRef: mimir
+  interval: 1m
+  rules:
+  - uid: mimirgothreadstoohigh
+    title: MimirGoThreadsTooHigh
+    condition: A
+    execErrState: Error
+    noDataState: OK
+    data:
+    - refId: A
+      queryType: promql
+      relativeTimeRange:
+        from: 60
+      datasourceUid: mimir
+      model:
+        datasource:
+          type: prometheus
+          uid: mimir
+        expr: '# We filter by the namespace because go_threads can be very high cardinality
+          in a large organization.
+
+          max by(cluster, namespace, pod) (go_threads{job=~".*(cortex|mimir).*"} >
+          5000)
+
+
+          # Further filter on namespaces actually running Mimir.
+
+          and on (cluster, namespace) (count by (cluster, namespace) (cortex_build_info))
+
+          '
+        interval: ''
+        legendFormat: ''
+        refId: A
+    for: 15m
+    labels:
+      severity: warning
+    annotations:
+      message: Mimir {{ "{{" }} $labels.pod }} in {{ "{{" }} $labels.cluster }}/{{
+        "{{" }} $labels.namespace }} is running a very high number of Go threads.
+      runbook_url: https://grafana.com/docs/mimir/latest/operators-guide/mimir-runbooks/#mimirgothreadstoohigh
+  - uid: mimirgothreadstoohigh
+    title: MimirGoThreadsTooHigh
+    condition: A
+    execErrState: Error
+    noDataState: OK
+    data:
+    - refId: A
+      queryType: promql
+      relativeTimeRange:
+        from: 60
+      datasourceUid: mimir
+      model:
+        datasource:
+          type: prometheus
+          uid: mimir
+        expr: '# We filter by the namespace because go_threads can be very high cardinality
+          in a large organization.
+
+          max by(cluster, namespace, pod) (go_threads{job=~".*(cortex|mimir).*"} >
+          8000)
+
+
+          # Further filter on namespaces actually running Mimir.
+
+          and on (cluster, namespace) (count by (cluster, namespace) (cortex_build_info))
+
+          '
+        interval: ''
+        legendFormat: ''
+        refId: A
+    for: 15m
+    labels:
+      severity: critical
+    annotations:
+      message: Mimir {{ "{{" }} $labels.pod }} in {{ "{{" }} $labels.cluster }}/{{
+        "{{" }} $labels.namespace }} is running a very high number of Go threads.
+      runbook_url: https://grafana.com/docs/mimir/latest/operators-guide/mimir-runbooks/#mimirgothreadstoohigh

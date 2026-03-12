@@ -1,0 +1,142 @@
+apiVersion: grafana.integreatly.org/v1beta1
+kind: GrafanaAlertRuleGroup
+metadata:
+  name: gossip-alerts
+spec:
+  allowCrossNamespaceImport: true
+  instanceSelector:
+    matchLabels:
+      grafana: primary
+  folderRef: mimir
+  interval: 1m
+  rules:
+  - uid: mimirgossipmemberstoohigh
+    title: MimirGossipMembersTooHigh
+    condition: A
+    execErrState: Error
+    noDataState: OK
+    data:
+    - refId: A
+      queryType: promql
+      relativeTimeRange:
+        from: 60
+      datasourceUid: mimir
+      model:
+        datasource:
+          type: prometheus
+          uid: mimir
+        expr: 'max by (cluster, namespace) (memberlist_client_cluster_members_count)
+
+          >
+
+          (sum by (cluster, namespace) (up{job=~".*/(admin-api|alertmanager|compactor.*|distributor.*|ingester.*|query-frontend.*|querier.*|ruler|ruler-querier.*|store-gateway.*|cortex|mimir)"})
+          + 10)
+
+          '
+        interval: ''
+        legendFormat: ''
+        refId: A
+    for: 20m
+    labels:
+      severity: warning
+    annotations:
+      message: One or more Mimir instances in {{ "{{" }} $labels.cluster }}/{{ "{{"
+        }} $labels.namespace }} consistently sees a higher than expected number of
+        gossip members.
+      runbook_url: https://grafana.com/docs/mimir/latest/operators-guide/mimir-runbooks/#mimirgossipmemberstoohigh
+  - uid: mimirgossipmemberstoolow
+    title: MimirGossipMembersTooLow
+    condition: A
+    execErrState: Error
+    noDataState: OK
+    data:
+    - refId: A
+      queryType: promql
+      relativeTimeRange:
+        from: 60
+      datasourceUid: mimir
+      model:
+        datasource:
+          type: prometheus
+          uid: mimir
+        expr: 'min by (cluster, namespace) (memberlist_client_cluster_members_count)
+
+          <
+
+          (sum by (cluster, namespace) (up{job=~".+/(admin-api|alertmanager|compactor.*|distributor.*|ingester.*|query-frontend.*|querier.*|ruler|ruler-querier.*|store-gateway.*|cortex|mimir)"})
+          * 0.5)
+
+          '
+        interval: ''
+        legendFormat: ''
+        refId: A
+    for: 20m
+    labels:
+      severity: warning
+    annotations:
+      message: One or more Mimir instances in {{ "{{" }} $labels.cluster }}/{{ "{{"
+        }} $labels.namespace }} consistently sees a lower than expected number of
+        gossip members.
+      runbook_url: https://grafana.com/docs/mimir/latest/operators-guide/mimir-runbooks/#mimirgossipmemberstoolow
+  - uid: mimirgossipmembersendpointsoutofsync
+    title: MimirGossipMembersEndpointsOutOfSync
+    condition: A
+    execErrState: Error
+    noDataState: OK
+    data:
+    - refId: A
+      queryType: promql
+      relativeTimeRange:
+        from: 60
+      datasourceUid: mimir
+      model:
+        datasource:
+          type: prometheus
+          uid: mimir
+        expr: "(\n  count by(cluster, namespace) (\n    kube_endpoint_address{endpoint=\"\
+          gossip-ring\"}\n    unless on (cluster, namespace, ip)\n    label_replace(kube_pod_info,\
+          \ \"ip\", \"$1\", \"pod_ip\", \"(.*)\"))\n  /\n  count by(cluster, namespace)\
+          \ (\n    kube_endpoint_address{endpoint=\"gossip-ring\"}\n  )\n  * 100 >\
+          \ 10\n)\n\n# Filter by Mimir only.\nand (count by(cluster, namespace) (cortex_build_info)\
+          \ > 0)\n"
+        interval: ''
+        legendFormat: ''
+        refId: A
+    for: 15m
+    labels:
+      severity: warning
+    annotations:
+      message: Mimir gossip-ring service endpoints list in {{ "{{" }} $labels.cluster
+        }}/{{ "{{" }} $labels.namespace }} is out of sync.
+      runbook_url: https://grafana.com/docs/mimir/latest/operators-guide/mimir-runbooks/#mimirgossipmembersendpointsoutofsync
+  - uid: mimirgossipmembersendpointsoutofsync
+    title: MimirGossipMembersEndpointsOutOfSync
+    condition: A
+    execErrState: Error
+    noDataState: OK
+    data:
+    - refId: A
+      queryType: promql
+      relativeTimeRange:
+        from: 60
+      datasourceUid: mimir
+      model:
+        datasource:
+          type: prometheus
+          uid: mimir
+        expr: "(\n  count by(cluster, namespace) (\n    kube_endpoint_address{endpoint=\"\
+          gossip-ring\"}\n    unless on (cluster, namespace, ip)\n    label_replace(kube_pod_info,\
+          \ \"ip\", \"$1\", \"pod_ip\", \"(.*)\"))\n  /\n  count by(cluster, namespace)\
+          \ (\n    kube_endpoint_address{endpoint=\"gossip-ring\"}\n  )\n  * 100 >\
+          \ 50\n)\n\n# Filter by Mimir only.\nand (count by(cluster, namespace) (cortex_build_info)\
+          \ > 0)\n"
+        interval: ''
+        legendFormat: ''
+        refId: A
+    for: 5m
+    labels:
+      severity: critical
+    annotations:
+      message: Mimir gossip-ring service endpoints list in {{ "{{" }} $labels.cluster
+        }}/{{ "{{" }} $labels.namespace }} is out of sync.
+      runbook_url: https://grafana.com/docs/mimir/latest/operators-guide/mimir-runbooks/#mimirgossipmembersendpointsoutofsync

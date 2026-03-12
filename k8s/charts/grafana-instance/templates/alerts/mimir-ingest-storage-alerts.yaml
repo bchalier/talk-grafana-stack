@@ -1,0 +1,577 @@
+apiVersion: grafana.integreatly.org/v1beta1
+kind: GrafanaAlertRuleGroup
+metadata:
+  name: mimir-ingest-storage-alerts
+spec:
+  allowCrossNamespaceImport: true
+  instanceSelector:
+    matchLabels:
+      grafana: primary
+  folderRef: mimir
+  interval: 1m
+  rules:
+  - uid: mim-7fcbf9a2755c0fb7800a548dc95050231424
+    title: MimirIngesterLastConsumedOffsetCommitFailed
+    condition: A
+    execErrState: Error
+    noDataState: OK
+    data:
+    - refId: A
+      queryType: promql
+      relativeTimeRange:
+        from: 60
+      datasourceUid: mimir
+      model:
+        datasource:
+          type: prometheus
+          uid: mimir
+        expr: 'sum by(cluster, namespace, pod) (rate(cortex_ingest_storage_reader_offset_commit_failures_total[5m]))
+
+          /
+
+          sum by(cluster, namespace, pod) (rate(cortex_ingest_storage_reader_offset_commit_requests_total[5m]))
+
+          > 0.2
+
+          '
+        interval: ''
+        legendFormat: ''
+        refId: A
+    for: 15m
+    labels:
+      severity: critical
+    annotations:
+      message: Mimir {{ "{{" }} $labels.pod }} in {{ "{{" }} $labels.cluster }}/{{
+        "{{" }} $labels.namespace }} is failing to commit the last consumed offset.
+      runbook_url: https://grafana.com/docs/mimir/latest/operators-guide/mimir-runbooks/#mimiringesterlastconsumedoffsetcommitfailed
+  - uid: mim-f92f04f111d3657116c2564c1c17e03bec0d
+    title: MimirIngesterFailedToReadRecordsFromKafka
+    condition: A
+    execErrState: Error
+    noDataState: OK
+    data:
+    - refId: A
+      queryType: promql
+      relativeTimeRange:
+        from: 60
+      datasourceUid: mimir
+      model:
+        datasource:
+          type: prometheus
+          uid: mimir
+        expr: 'sum by(cluster, namespace, pod, node_id) (rate(cortex_ingest_storage_reader_read_errors_total[1m]))
+
+          > 0
+
+          '
+        interval: ''
+        legendFormat: ''
+        refId: A
+    for: 5m
+    labels:
+      severity: critical
+    annotations:
+      message: Mimir {{ "{{" }} $labels.pod }} in {{ "{{" }} $labels.cluster }}/{{
+        "{{" }} $labels.namespace }} is failing to read records from Kafka.
+      runbook_url: https://grafana.com/docs/mimir/latest/operators-guide/mimir-runbooks/#mimiringesterfailedtoreadrecordsfromkafka
+  - uid: mimiringesterkafkafetcherrorsratetoohigh
+    title: MimirIngesterKafkaFetchErrorsRateTooHigh
+    condition: A
+    execErrState: Error
+    noDataState: OK
+    data:
+    - refId: A
+      queryType: promql
+      relativeTimeRange:
+        from: 60
+      datasourceUid: mimir
+      model:
+        datasource:
+          type: prometheus
+          uid: mimir
+        expr: 'sum by (cluster, namespace, pod) (rate (cortex_ingest_storage_reader_fetch_errors_total[5m]))
+
+          /
+
+          sum by (cluster, namespace, pod) (rate (cortex_ingest_storage_reader_fetches_total[5m]))
+
+          > 0.1
+
+          '
+        interval: ''
+        legendFormat: ''
+        refId: A
+    for: 15m
+    labels:
+      severity: critical
+    annotations:
+      message: Mimir {{ "{{" }} $labels.pod }} in {{ "{{" }} $labels.cluster }}/{{
+        "{{" }} $labels.namespace }} is receiving fetch errors when reading records
+        from Kafka.
+      runbook_url: https://grafana.com/docs/mimir/latest/operators-guide/mimir-runbooks/#mimiringesterkafkafetcherrorsratetoohigh
+  - uid: mim-db27d2859d2635f932207dc60e2f1198a4c1
+    title: MimirStartingIngesterKafkaReceiveDelayIncreasing
+    condition: A
+    execErrState: Error
+    noDataState: OK
+    data:
+    - refId: A
+      queryType: promql
+      relativeTimeRange:
+        from: 60
+      datasourceUid: mimir
+      model:
+        datasource:
+          type: prometheus
+          uid: mimir
+        expr: "deriv((\n    sum by (cluster, namespace, pod) (rate(cortex_ingest_storage_reader_receive_delay_seconds_sum{phase=\"\
+          starting\"}[1m]))\n    /\n    sum by (cluster, namespace, pod) (rate(cortex_ingest_storage_reader_receive_delay_seconds_count{phase=\"\
+          starting\"}[1m]))\n)[5m:1m]) > 0\n"
+        interval: ''
+        legendFormat: ''
+        refId: A
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      message: Mimir {{ "{{" }} $labels.pod }} in {{ "{{" }} $labels.cluster }}/{{
+        "{{" }} $labels.namespace }} in "starting" phase is not reducing consumption
+        lag of write requests read from Kafka.
+      runbook_url: https://grafana.com/docs/mimir/latest/operators-guide/mimir-runbooks/#mimirstartingingesterkafkareceivedelayincreasing
+  - uid: mimirrunningingesterreceivedelaytoohigh
+    title: MimirRunningIngesterReceiveDelayTooHigh
+    condition: A
+    execErrState: Error
+    noDataState: OK
+    data:
+    - refId: A
+      queryType: promql
+      relativeTimeRange:
+        from: 60
+      datasourceUid: mimir
+      model:
+        datasource:
+          type: prometheus
+          uid: mimir
+        expr: "(\n  sum by (cluster, namespace, pod) (rate(cortex_ingest_storage_reader_receive_delay_seconds_sum{phase=\"\
+          running\"}[1m]))\n  /\n  sum by (cluster, namespace, pod) (rate(cortex_ingest_storage_reader_receive_delay_seconds_count{phase=\"\
+          running\"}[1m]))\n) > (2 * 60)\n"
+        interval: ''
+        legendFormat: ''
+        refId: A
+    for: 3m
+    labels:
+      severity: critical
+      threshold: very_high_for_short_period
+    annotations:
+      message: Mimir {{ "{{" }} $labels.pod }} in {{ "{{" }} $labels.cluster }}/{{
+        "{{" }} $labels.namespace }} in "running" phase is too far behind in its consumption
+        of write requests from Kafka.
+      runbook_url: https://grafana.com/docs/mimir/latest/operators-guide/mimir-runbooks/#mimirrunningingesterreceivedelaytoohigh
+  - uid: mimirrunningingesterreceivedelaytoohigh
+    title: MimirRunningIngesterReceiveDelayTooHigh
+    condition: A
+    execErrState: Error
+    noDataState: OK
+    data:
+    - refId: A
+      queryType: promql
+      relativeTimeRange:
+        from: 60
+      datasourceUid: mimir
+      model:
+        datasource:
+          type: prometheus
+          uid: mimir
+        expr: "(\n  sum by (cluster, namespace, pod) (rate(cortex_ingest_storage_reader_receive_delay_seconds_sum{phase=\"\
+          running\"}[1m]))\n  /\n  sum by (cluster, namespace, pod) (rate(cortex_ingest_storage_reader_receive_delay_seconds_count{phase=\"\
+          running\"}[1m]))\n) > 30\n"
+        interval: ''
+        legendFormat: ''
+        refId: A
+    for: 15m
+    labels:
+      severity: critical
+      threshold: relatively_high_for_long_period
+    annotations:
+      message: Mimir {{ "{{" }} $labels.pod }} in {{ "{{" }} $labels.cluster }}/{{
+        "{{" }} $labels.namespace }} in "running" phase is too far behind in its consumption
+        of write requests from Kafka.
+      runbook_url: https://grafana.com/docs/mimir/latest/operators-guide/mimir-runbooks/#mimirrunningingesterreceivedelaytoohigh
+  - uid: mim-0723a9fdd556724cbef2493f3decc3a521b4
+    title: MimirIngesterFailsToProcessRecordsFromKafka
+    condition: A
+    execErrState: Error
+    noDataState: OK
+    data:
+    - refId: A
+      queryType: promql
+      relativeTimeRange:
+        from: 60
+      datasourceUid: mimir
+      model:
+        datasource:
+          type: prometheus
+          uid: mimir
+        expr: "(\n  sum by (cluster, namespace, pod) (\n      # This is the old metric\
+          \ name. We're keeping support for backward compatibility.\n    rate(cortex_ingest_storage_reader_records_failed_total{cause=\"\
+          server\"}[1m])\n    or\n    rate(cortex_ingest_storage_reader_requests_failed_total{cause=\"\
+          server\"}[1m])\n  ) > 0\n)\n\n# Tolerate failures during the forced TSDB\
+          \ head compaction, because samples older than the\n# new \"head min time\"\
+          \ will fail to be appended while the forced compaction is running.\nunless\
+          \ (max by (cluster, namespace, pod) (max_over_time(cortex_ingester_tsdb_forced_compactions_in_progress[1m]))\
+          \ > 0)\n"
+        interval: ''
+        legendFormat: ''
+        refId: A
+    for: 5m
+    labels:
+      severity: critical
+    annotations:
+      message: Mimir {{ "{{" }} $labels.pod }} in {{ "{{" }} $labels.cluster }}/{{
+        "{{" }} $labels.namespace }} fails to consume write requests read from Kafka
+        due to internal errors.
+      runbook_url: https://grafana.com/docs/mimir/latest/operators-guide/mimir-runbooks/#mimiringesterfailstoprocessrecordsfromkafka
+  - uid: mim-55ce90e420847a3249db2ed23df4dbd01f55
+    title: MimirIngesterStuckProcessingRecordsFromKafka
+    condition: A
+    execErrState: Error
+    noDataState: OK
+    data:
+    - refId: A
+      queryType: promql
+      relativeTimeRange:
+        from: 60
+      datasourceUid: mimir
+      model:
+        datasource:
+          type: prometheus
+          uid: mimir
+        expr: "# Alert if the reader is not processing any records, but there buffered\
+          \ records to process in the Kafka client.\n(sum by (cluster, namespace,\
+          \ pod) (\n    # This is the old metric name. We're keeping support for backward\
+          \ compatibility.\n  rate(cortex_ingest_storage_reader_records_total[5m])\n\
+          \  or\n  rate(cortex_ingest_storage_reader_requests_total[5m])\n) == 0)\n\
+          and\n(sum by (cluster, namespace, pod) (cortex_ingest_storage_reader_buffered_fetched_records)\
+          \ > 0)\n"
+        interval: ''
+        legendFormat: ''
+        refId: A
+    for: 5m
+    labels:
+      severity: critical
+    annotations:
+      message: Mimir {{ "{{" }} $labels.pod }} in {{ "{{" }} $labels.cluster }}/{{
+        "{{" }} $labels.namespace }} is stuck processing write requests from Kafka.
+      runbook_url: https://grafana.com/docs/mimir/latest/operators-guide/mimir-runbooks/#mimiringesterstuckprocessingrecordsfromkafka
+  - uid: mimiringestermissedrecordsfromkafka
+    title: MimirIngesterMissedRecordsFromKafka
+    condition: A
+    execErrState: Error
+    noDataState: OK
+    data:
+    - refId: A
+      queryType: promql
+      relativeTimeRange:
+        from: 60
+      datasourceUid: mimir
+      model:
+        datasource:
+          type: prometheus
+          uid: mimir
+        expr: '# Alert if the ingester missed some records from Kafka.
+
+          increase(cortex_ingest_storage_reader_missed_records_total[10m]) > 0
+
+          '
+        interval: ''
+        legendFormat: ''
+        refId: A
+    for: 1m
+    labels:
+      severity: critical
+    annotations:
+      message: Mimir {{ "{{" }} $labels.pod }} in {{ "{{" }} $labels.cluster }}/{{
+        "{{" }} $labels.namespace }} missed processing records from Kafka. There may
+        be data loss.
+      runbook_url: https://grafana.com/docs/mimir/latest/operators-guide/mimir-runbooks/#mimiringestermissedrecordsfromkafka
+  - uid: mimirstrongconsistencyenforcementfailed
+    title: MimirStrongConsistencyEnforcementFailed
+    condition: A
+    execErrState: Error
+    noDataState: OK
+    data:
+    - refId: A
+      queryType: promql
+      relativeTimeRange:
+        from: 60
+      datasourceUid: mimir
+      model:
+        datasource:
+          type: prometheus
+          uid: mimir
+        expr: 'sum by (cluster, namespace, pod) (rate(cortex_ingest_storage_strong_consistency_failures_total[1m]))
+          > 0
+
+          '
+        interval: ''
+        legendFormat: ''
+        refId: A
+    for: 5m
+    labels:
+      severity: critical
+    annotations:
+      message: Mimir {{ "{{" }} $labels.pod }} in {{ "{{" }} $labels.cluster }}/{{
+        "{{" }} $labels.namespace }} fails to enforce strong-consistency on read-path.
+      runbook_url: https://grafana.com/docs/mimir/latest/operators-guide/mimir-runbooks/#mimirstrongconsistencyenforcementfailed
+  - uid: mim-09ee9bfe9b0c0bb09ce2800131c3c552c466
+    title: MimirStrongConsistencyOffsetNotPropagatedToIngesters
+    condition: A
+    execErrState: Error
+    noDataState: OK
+    data:
+    - refId: A
+      queryType: promql
+      relativeTimeRange:
+        from: 60
+      datasourceUid: mimir
+      model:
+        datasource:
+          type: prometheus
+          uid: mimir
+        expr: 'sum by (cluster, namespace) (rate(cortex_ingest_storage_strong_consistency_requests_total{component="partition-reader",
+          with_offset="false"}[1m]))
+
+          /
+
+          sum by (cluster, namespace) (rate(cortex_ingest_storage_strong_consistency_requests_total{component="partition-reader"}[1m]))
+
+          * 100 > 5
+
+          '
+        interval: ''
+        legendFormat: ''
+        refId: A
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      message: Mimir ingesters in {{ "{{" }} $labels.cluster }}/{{ "{{" }} $labels.namespace
+        }} are receiving an unexpected high number of strongly consistent requests
+        without an offset specified.
+      runbook_url: https://grafana.com/docs/mimir/latest/operators-guide/mimir-runbooks/#mimirstrongconsistencyoffsetnotpropagatedtoingesters
+  - uid: mim-5504a5d5ff25e020a6d34480c58b3bb7ed9b
+    title: MimirKafkaClientBufferedProduceBytesTooHigh
+    condition: A
+    execErrState: Error
+    noDataState: OK
+    data:
+    - refId: A
+      queryType: promql
+      relativeTimeRange:
+        from: 60
+      datasourceUid: mimir
+      model:
+        datasource:
+          type: prometheus
+          uid: mimir
+        expr: 'max by(cluster, namespace, pod) (max_over_time(cortex_ingest_storage_writer_buffered_produce_bytes{quantile="1.0"}[1m]))
+
+          /
+
+          min by(cluster, namespace, pod) (min_over_time(cortex_ingest_storage_writer_buffered_produce_bytes_limit[1m]))
+
+          * 100 > 50
+
+          '
+        interval: ''
+        legendFormat: ''
+        refId: A
+    for: 5m
+    labels:
+      severity: critical
+    annotations:
+      message: Mimir {{ "{{" }} $labels.pod }} in {{ "{{" }} $labels.cluster }}/{{
+        "{{" }} $labels.namespace }} Kafka client produce buffer utilization is {{
+        "{{" }} printf "%.2f" $value }}%.
+      runbook_url: https://grafana.com/docs/mimir/latest/operators-guide/mimir-runbooks/#mimirkafkaclientbufferedproducebytestoohigh
+  - uid: mimirblockbuilderlagging
+    title: MimirBlockBuilderLagging
+    condition: A
+    execErrState: Error
+    noDataState: OK
+    data:
+    - refId: A
+      queryType: promql
+      relativeTimeRange:
+        from: 60
+      datasourceUid: mimir
+      model:
+        datasource:
+          type: prometheus
+          uid: mimir
+        expr: 'max by(cluster, namespace, pod) (
+
+          max_over_time(
+
+          (
+
+          cortex_blockbuilder_scheduler_partition_end_offset offset 1h
+
+          -
+
+          cortex_blockbuilder_scheduler_partition_committed_offset
+
+          )[10m:])) > 4e6
+
+          '
+        interval: ''
+        legendFormat: ''
+        refId: A
+    for: 75m
+    labels:
+      severity: warning
+    annotations:
+      message: Mimir {{ "{{" }} $labels.pod }} in {{ "{{" }} $labels.cluster }}/{{
+        "{{" }} $labels.namespace }} reports partition lag of {{ "{{" }} printf "%.2f"
+        $value }}.
+      runbook_url: https://grafana.com/docs/mimir/latest/operators-guide/mimir-runbooks/#mimirblockbuilderlagging
+  - uid: mimirblockbuilderlagging
+    title: MimirBlockBuilderLagging
+    condition: A
+    execErrState: Error
+    noDataState: OK
+    data:
+    - refId: A
+      queryType: promql
+      relativeTimeRange:
+        from: 60
+      datasourceUid: mimir
+      model:
+        datasource:
+          type: prometheus
+          uid: mimir
+        expr: 'max by(cluster, namespace, pod) (
+
+          max_over_time(
+
+          (
+
+          cortex_blockbuilder_scheduler_partition_end_offset offset 1h
+
+          -
+
+          cortex_blockbuilder_scheduler_partition_committed_offset
+
+          )[10m:])) > 4e6
+
+          '
+        interval: ''
+        legendFormat: ''
+        refId: A
+    for: 140m
+    labels:
+      severity: critical
+    annotations:
+      message: Mimir {{ "{{" }} $labels.pod }} in {{ "{{" }} $labels.cluster }}/{{
+        "{{" }} $labels.namespace }} reports partition lag of {{ "{{" }} printf "%.2f"
+        $value }}.
+      runbook_url: https://grafana.com/docs/mimir/latest/operators-guide/mimir-runbooks/#mimirblockbuilderlagging
+  - uid: mimirblockbuildercompactanduploadfailed
+    title: MimirBlockBuilderCompactAndUploadFailed
+    condition: A
+    execErrState: Error
+    noDataState: OK
+    data:
+    - refId: A
+      queryType: promql
+      relativeTimeRange:
+        from: 60
+      datasourceUid: mimir
+      model:
+        datasource:
+          type: prometheus
+          uid: mimir
+        expr: 'sum by (cluster, namespace, pod) (rate(cortex_blockbuilder_tsdb_compact_and_upload_failed_total[1m]))
+          > 0
+
+          '
+        interval: ''
+        legendFormat: ''
+        refId: A
+    for: 1m
+    labels:
+      severity: critical
+    annotations:
+      message: Mimir {{ "{{" }} $labels.pod }} in {{ "{{" }} $labels.cluster }}/{{
+        "{{" }} $labels.namespace }} fails to compact and upload blocks.
+      runbook_url: https://grafana.com/docs/mimir/latest/operators-guide/mimir-runbooks/#mimirblockbuildercompactanduploadfailed
+  - uid: mimirblockbuilderhasnotshippedblocks
+    title: MimirBlockBuilderHasNotShippedBlocks
+    condition: A
+    execErrState: Error
+    noDataState: OK
+    data:
+    - refId: A
+      queryType: promql
+      relativeTimeRange:
+        from: 60
+      datasourceUid: mimir
+      model:
+        datasource:
+          type: prometheus
+          uid: mimir
+        expr: '(min by(cluster, namespace, pod) (time() - cortex_blockbuilder_tsdb_last_successful_compact_and_upload_timestamp_seconds)
+          > 60 * 60 * 4)
+
+          and
+
+          (max by(cluster, namespace, pod) (cortex_blockbuilder_tsdb_last_successful_compact_and_upload_timestamp_seconds)
+          > 0)
+
+          # Only if blocks aren''t shipped by ingesters.
+
+          unless on (cluster, namespace)
+
+          (max by (cluster, namespace) (cortex_ingester_shipper_last_successful_upload_timestamp_seconds)
+          > 0)
+
+          '
+        interval: ''
+        legendFormat: ''
+        refId: A
+    for: 15m
+    labels:
+      severity: critical
+    annotations:
+      message: Mimir {{ "{{" }} $labels.pod }} in {{ "{{" }} $labels.cluster }}/{{
+        "{{" }} $labels.namespace }} has not shipped any block in the last 4 hours.
+      runbook_url: https://grafana.com/docs/mimir/latest/operators-guide/mimir-runbooks/#mimirblockbuilderhasnotshippedblocks
+  - uid: mimirblockbuilderdataskipped
+    title: MimirBlockBuilderDataSkipped
+    condition: A
+    execErrState: Error
+    noDataState: OK
+    data:
+    - refId: A
+      queryType: promql
+      relativeTimeRange:
+        from: 60
+      datasourceUid: mimir
+      model:
+        datasource:
+          type: prometheus
+          uid: mimir
+        expr: 'increase(cortex_blockbuilder_scheduler_job_gap_detected[1m]) > 0
+
+          '
+        interval: ''
+        legendFormat: ''
+        refId: A
+    for: 1m
+    labels:
+      severity: warning
+    annotations:
+      message: Mimir {{ "{{" }} $labels.pod }} in {{ "{{" }} $labels.cluster }}/{{
+        "{{" }} $labels.namespace }} has detected skipped data.
+      runbook_url: https://grafana.com/docs/mimir/latest/operators-guide/mimir-runbooks/#mimirblockbuilderdataskipped

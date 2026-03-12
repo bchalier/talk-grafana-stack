@@ -1,0 +1,197 @@
+apiVersion: grafana.integreatly.org/v1beta1
+kind: GrafanaAlertRuleGroup
+metadata:
+  name: mimir-rollout-alerts
+spec:
+  allowCrossNamespaceImport: true
+  instanceSelector:
+    matchLabels:
+      grafana: primary
+  folderRef: mimir
+  interval: 1m
+  rules:
+  - uid: mimirrolloutstuck
+    title: MimirRolloutStuck
+    condition: A
+    execErrState: Error
+    noDataState: OK
+    data:
+    - refId: A
+      queryType: promql
+      relativeTimeRange:
+        from: 60
+      datasourceUid: mimir
+      model:
+        datasource:
+          type: prometheus
+          uid: mimir
+        expr: "(\n  # Query for rollout groups in certain namespaces that are being\
+          \ updated, dropping the revision label.\n  max by (cluster, namespace, rollout_group)\
+          \ (\n    sum by (cluster, namespace, rollout_group, revision) (label_replace(kube_statefulset_status_current_revision,\
+          \ \"rollout_group\", \"$1\", \"statefulset\", \"(.*?)(?:-zone-[a-z])?\"\
+          ))\n      unless\n    sum by (cluster, namespace, rollout_group, revision)\
+          \ (label_replace(kube_statefulset_status_update_revision, \"rollout_group\"\
+          , \"$1\", \"statefulset\", \"(.*?)(?:-zone-[a-z])?\"))\n  )\n    # Multiply\
+          \ by replicas in corresponding rollout groups not fully updated to the current\
+          \ revision.\n    *\n  (\n    sum by (cluster, namespace, rollout_group)\
+          \ (label_replace(kube_statefulset_replicas, \"rollout_group\", \"$1\", \"\
+          statefulset\", \"(.*?)(?:-zone-[a-z])?\"))\n      !=\n    sum by (cluster,\
+          \ namespace, rollout_group) (label_replace(kube_statefulset_status_replicas_updated,\
+          \ \"rollout_group\", \"$1\", \"statefulset\", \"(.*?)(?:-zone-[a-z])?\"\
+          ))\n  )\n) and (\n  # Pick only those which are unchanging for the interval.\n\
+          \  changes(sum by (cluster, namespace, rollout_group) (label_replace(kube_statefulset_status_replicas_updated,\
+          \ \"rollout_group\", \"$1\", \"statefulset\", \"(.*?)(?:-zone-[a-z])?\"\
+          ))[15m:1m])\n    ==\n  0\n)\n# Include only Mimir namespaces.\n* on(cluster,\
+          \ namespace) group_left max by(cluster, namespace) (cortex_build_info)\n"
+        interval: ''
+        legendFormat: ''
+        refId: A
+    for: 30m
+    labels:
+      severity: warning
+      workload_type: statefulset
+    annotations:
+      message: The {{ "{{" }} $labels.rollout_group }} rollout is stuck in {{ "{{"
+        }} $labels.cluster }}/{{ "{{" }} $labels.namespace }}.
+      runbook_url: https://grafana.com/docs/mimir/latest/operators-guide/mimir-runbooks/#mimirrolloutstuck
+  - uid: mimirrolloutstuck
+    title: MimirRolloutStuck
+    condition: A
+    execErrState: Error
+    noDataState: OK
+    data:
+    - refId: A
+      queryType: promql
+      relativeTimeRange:
+        from: 60
+      datasourceUid: mimir
+      model:
+        datasource:
+          type: prometheus
+          uid: mimir
+        expr: "(\n  # Query for rollout groups in certain namespaces that are being\
+          \ updated, dropping the revision label.\n  max by (cluster, namespace, rollout_group)\
+          \ (\n    sum by (cluster, namespace, rollout_group, revision) (label_replace(kube_statefulset_status_current_revision,\
+          \ \"rollout_group\", \"$1\", \"statefulset\", \"(.*?)(?:-zone-[a-z])?\"\
+          ))\n      unless\n    sum by (cluster, namespace, rollout_group, revision)\
+          \ (label_replace(kube_statefulset_status_update_revision, \"rollout_group\"\
+          , \"$1\", \"statefulset\", \"(.*?)(?:-zone-[a-z])?\"))\n  )\n    # Multiply\
+          \ by replicas in corresponding rollout groups not fully updated to the current\
+          \ revision.\n    *\n  (\n    sum by (cluster, namespace, rollout_group)\
+          \ (label_replace(kube_statefulset_replicas, \"rollout_group\", \"$1\", \"\
+          statefulset\", \"(.*?)(?:-zone-[a-z])?\"))\n      !=\n    sum by (cluster,\
+          \ namespace, rollout_group) (label_replace(kube_statefulset_status_replicas_updated,\
+          \ \"rollout_group\", \"$1\", \"statefulset\", \"(.*?)(?:-zone-[a-z])?\"\
+          ))\n  )\n) and (\n  # Pick only those which are unchanging for the interval.\n\
+          \  changes(sum by (cluster, namespace, rollout_group) (label_replace(kube_statefulset_status_replicas_updated,\
+          \ \"rollout_group\", \"$1\", \"statefulset\", \"(.*?)(?:-zone-[a-z])?\"\
+          ))[15m:1m])\n    ==\n  0\n)\n# Include only Mimir namespaces.\n* on(cluster,\
+          \ namespace) group_left max by(cluster, namespace) (cortex_build_info)\n"
+        interval: ''
+        legendFormat: ''
+        refId: A
+    for: 6h
+    labels:
+      severity: critical
+      workload_type: statefulset
+    annotations:
+      message: The {{ "{{" }} $labels.rollout_group }} rollout is stuck in {{ "{{"
+        }} $labels.cluster }}/{{ "{{" }} $labels.namespace }}.
+      runbook_url: https://grafana.com/docs/mimir/latest/operators-guide/mimir-runbooks/#mimirrolloutstuck
+  - uid: mimirrolloutstuck
+    title: MimirRolloutStuck
+    condition: A
+    execErrState: Error
+    noDataState: OK
+    data:
+    - refId: A
+      queryType: promql
+      relativeTimeRange:
+        from: 60
+      datasourceUid: mimir
+      model:
+        datasource:
+          type: prometheus
+          uid: mimir
+        expr: "(\n  sum without(deployment) (label_replace(kube_deployment_spec_replicas,\
+          \ \"rollout_group\", \"$1\", \"deployment\", \"(.*?)(?:-zone-[a-z])?\"))\n\
+          \    !=\n  sum without(deployment) (label_replace(kube_deployment_status_replicas_updated,\
+          \ \"rollout_group\", \"$1\", \"deployment\", \"(.*?)(?:-zone-[a-z])?\"))\n\
+          ) and (\n  changes(sum without(deployment) (label_replace(kube_deployment_status_replicas_updated,\
+          \ \"rollout_group\", \"$1\", \"deployment\", \"(.*?)(?:-zone-[a-z])?\"))[15m:1m])\n\
+          \    ==\n  0\n)\n* on(cluster, namespace) group_left max by(cluster, namespace)\
+          \ (cortex_build_info)\n"
+        interval: ''
+        legendFormat: ''
+        refId: A
+    for: 30m
+    labels:
+      severity: warning
+      workload_type: deployment
+    annotations:
+      message: The {{ "{{" }} $labels.rollout_group }} rollout is stuck in {{ "{{"
+        }} $labels.cluster }}/{{ "{{" }} $labels.namespace }}.
+      runbook_url: https://grafana.com/docs/mimir/latest/operators-guide/mimir-runbooks/#mimirrolloutstuck
+  - uid: mimirrolloutstuck
+    title: MimirRolloutStuck
+    condition: A
+    execErrState: Error
+    noDataState: OK
+    data:
+    - refId: A
+      queryType: promql
+      relativeTimeRange:
+        from: 60
+      datasourceUid: mimir
+      model:
+        datasource:
+          type: prometheus
+          uid: mimir
+        expr: "(\n  sum without(deployment) (label_replace(kube_deployment_spec_replicas,\
+          \ \"rollout_group\", \"$1\", \"deployment\", \"(.*?)(?:-zone-[a-z])?\"))\n\
+          \    !=\n  sum without(deployment) (label_replace(kube_deployment_status_replicas_updated,\
+          \ \"rollout_group\", \"$1\", \"deployment\", \"(.*?)(?:-zone-[a-z])?\"))\n\
+          ) and (\n  changes(sum without(deployment) (label_replace(kube_deployment_status_replicas_updated,\
+          \ \"rollout_group\", \"$1\", \"deployment\", \"(.*?)(?:-zone-[a-z])?\"))[15m:1m])\n\
+          \    ==\n  0\n)\n* on(cluster, namespace) group_left max by(cluster, namespace)\
+          \ (cortex_build_info)\n"
+        interval: ''
+        legendFormat: ''
+        refId: A
+    for: 6h
+    labels:
+      severity: critical
+      workload_type: deployment
+    annotations:
+      message: The {{ "{{" }} $labels.rollout_group }} rollout is stuck in {{ "{{"
+        }} $labels.cluster }}/{{ "{{" }} $labels.namespace }}.
+      runbook_url: https://grafana.com/docs/mimir/latest/operators-guide/mimir-runbooks/#mimirrolloutstuck
+  - uid: rolloutoperatornotreconciling
+    title: RolloutOperatorNotReconciling
+    condition: A
+    execErrState: Error
+    noDataState: OK
+    data:
+    - refId: A
+      queryType: promql
+      relativeTimeRange:
+        from: 60
+      datasourceUid: mimir
+      model:
+        datasource:
+          type: prometheus
+          uid: mimir
+        expr: 'max by(cluster, namespace, rollout_group) (time() - rollout_operator_last_successful_group_reconcile_timestamp_seconds)
+          > 600
+
+          '
+        interval: ''
+        legendFormat: ''
+        refId: A
+    for: 5m
+    labels:
+      severity: critical
+    annotations:
+      message: Rollout operator is not reconciling the rollout group {{ "{{" }} $labels.rollout_group
+        }} in {{ "{{" }} $labels.cluster }}/{{ "{{" }} $labels.namespace }}.
+      runbook_url: https://grafana.com/docs/mimir/latest/operators-guide/mimir-runbooks/#rolloutoperatornotreconciling
